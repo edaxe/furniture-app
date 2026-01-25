@@ -3,15 +3,16 @@ import {
   StyleSheet,
   View,
   Image,
-  ActivityIndicator,
   Text,
   Dimensions,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import * as Haptics from 'expo-haptics';
 
 import BoundingBox from '../components/BoundingBox';
 import ProductMatchModal from '../components/ProductMatchModal';
+import ScanningAnimation from '../components/ScanningAnimation';
 import { ScanStackParamList, DetectedFurniture, ProductMatch } from '../navigation/types';
 import { useScanStore } from '../store/scanStore';
 import { detectFurniture, getProductMatches } from '../services/detection';
@@ -67,11 +68,15 @@ export default function ResultsScreen() {
         setDetectedFurniture(results);
 
         if (results.length === 0) {
+          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
           navigation.replace('DetectionFailed', {
             reason: 'No furniture detected in this image. Try a clearer photo.',
           });
+        } else {
+          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }
       } catch (error) {
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         setError('Detection failed');
         navigation.replace('DetectionFailed', {
           reason: 'Could not analyze the image. Please try again.',
@@ -110,13 +115,7 @@ export default function ResultsScreen() {
   };
 
   if (isLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={styles.loadingText}>Analyzing furniture...</Text>
-        <Text style={styles.loadingSubtext}>This may take a moment</Text>
-      </View>
-    );
+    return <ScanningAnimation message="Analyzing furniture..." />;
   }
 
   return (
@@ -165,23 +164,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-  },
-  loadingSubtext: {
-    marginTop: 8,
-    fontSize: 14,
-    color: '#666',
   },
   imageContainer: {
     width: SCREEN_WIDTH,

@@ -11,8 +11,10 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { DetectedFurniture, ProductMatch, Room } from '../navigation/types';
 import { useListStore } from '../store/listStore';
+import { ProductCardSkeleton } from './SkeletonLoader';
 
 interface ProductMatchModalProps {
   visible: boolean;
@@ -46,9 +48,10 @@ export default function ProductMatchModal({
     setShowRoomPicker(true);
   };
 
-  const handleSaveToRoom = (roomId: string) => {
+  const handleSaveToRoom = async (roomId: string) => {
     if (furniture && selectedProduct) {
       saveItem(roomId, furniture, selectedProduct, imageUri);
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert('Saved', 'Item added to your list');
       setShowRoomPicker(false);
       setSelectedProduct(null);
@@ -100,8 +103,10 @@ export default function ProductMatchModal({
         </View>
 
         {isLoading ? (
-          <View style={styles.loadingContainer}>
-            <Text style={styles.loadingText}>Finding similar products...</Text>
+          <View style={styles.productList}>
+            <ProductCardSkeleton />
+            <ProductCardSkeleton />
+            <ProductCardSkeleton />
           </View>
         ) : (
           <ScrollView style={styles.productList}>
