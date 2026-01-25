@@ -1,3 +1,4 @@
+import os
 import uuid
 import random
 from typing import Optional
@@ -33,6 +34,9 @@ FURNITURE_CATEGORIES = [
 class VisionService:
     def __init__(self):
         self.settings = get_settings()
+        # Set credentials path if provided in settings
+        if self.settings.google_application_credentials:
+            os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = self.settings.google_application_credentials
 
     async def detect_furniture(
         self, image_content: bytes

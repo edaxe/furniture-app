@@ -56,3 +56,5 @@ coverage/
 # Build
 build/
 *.tsbuildinfo
+credentials.json
+backend/credentials.json
