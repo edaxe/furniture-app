@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "FurnishSnap",
+    "slug": "furnishsnap",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.furnishsnap.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "FurnishSnap needs camera access to scan and identify furniture in your photos.",
+        "NSPhotoLibraryUsageDescription": "FurnishSnap needs photo library access to select images of furniture to scan."
+      }
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow FurnishSnap to access your camera to scan furniture."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow FurnishSnap to access your photos to select furniture images."
+        }
+      ]
+    ],
+    "extra": {
+      "apiUrl": "http://localhost:8000"
+    }
+  }
+}
