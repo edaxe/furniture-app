@@ -1,6 +1,6 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
-import { Camera } from 'expo-camera';
+import { CameraView as ExpoCameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
 
 import CaptureButton from './CaptureButton';
@@ -12,33 +12,20 @@ interface CameraViewProps {
 
 export default function CameraView({ onCapture, onGalleryPress }: CameraViewProps) {
   const [facing, setFacing] = useState<'back' | 'front'>('back');
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [permission, requestPermission] = useCameraPermissions();
   const [isCapturing, setIsCapturing] = useState(false);
-  const cameraRef = useRef<Camera>(null);
+  const cameraRef = useRef<ExpoCameraView>(null);
 
-  useEffect(() => {
-    (async () => {
-      const { status } = await Camera.requestCameraPermissionsAsync();
-      setHasPermission(status === 'granted');
-    })();
-  }, []);
-
-  if (hasPermission === null) {
+  if (!permission) {
     return <View style={styles.container} />;
   }
 
-  if (hasPermission === false) {
+  if (!permission.granted) {
     return (
       <View style={styles.permissionContainer}>
         <Ionicons name="camera-outline" size={64} color="#666" />
         <Text style={styles.permissionText}>Camera access is required to scan furniture</Text>
-        <TouchableOpacity
-          style={styles.permissionButton}
-          onPress={async () => {
-            const { status } = await Camera.requestCameraPermissionsAsync();
-            setHasPermission(status === 'granted');
-          }}
-        >
+        <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
           <Text style={styles.permissionButtonText}>Grant Permission</Text>
         </TouchableOpacity>
       </View>
@@ -52,7 +39,6 @@ export default function CameraView({ onCapture, onGalleryPress }: CameraViewProp
     try {
       const photo = await cameraRef.current.takePictureAsync({
         quality: 0.8,
-        base64: false,
       });
       if (photo?.uri) {
         onCapture(photo.uri);
@@ -70,10 +56,10 @@ export default function CameraView({ onCapture, onGalleryPress }: CameraViewProp
 
   return (
     <View style={styles.container}>
-      <Camera
+      <ExpoCameraView
         ref={cameraRef}
         style={styles.camera}
-        type={facing === 'back' ? Camera.Constants.Type.back : Camera.Constants.Type.front}
+        facing={facing}
       >
         <View style={styles.overlay}>
           <View style={styles.topBar}>
@@ -99,7 +85,7 @@ export default function CameraView({ onCapture, onGalleryPress }: CameraViewProp
             <View style={styles.placeholder} />
           </View>
         </View>
-      </Camera>
+      </ExpoCameraView>
     </View>
   );
 }
