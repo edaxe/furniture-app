@@ -1,6 +1,9 @@
 import os
 import uuid
 import random
+import base64
+import json
+import tempfile
 from typing import Optional
 from ..models.detection import DetectedFurniture, BoundingBox
 from ..config import get_settings
@@ -34,9 +37,25 @@ FURNITURE_CATEGORIES = [
 class VisionService:
     def __init__(self):
         self.settings = get_settings()
-        # Set credentials path if provided in settings
-        if self.settings.google_application_credentials:
+        self._setup_credentials()
+
+    def _setup_credentials(self):
+        """Set up Google Cloud credentials from file or base64-encoded env var."""
+        # First, try base64-encoded credentials (for cloud deployment)
+        if self.settings.google_credentials_base64:
+            try:
+                creds_json = base64.b64decode(self.settings.google_credentials_base64).decode('utf-8')
+                # Write to a temp file
+                with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+                    f.write(creds_json)
+                    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = f.name
+                print("Using base64-encoded credentials")
+            except Exception as e:
+                print(f"Failed to decode base64 credentials: {e}")
+        # Fall back to file-based credentials
+        elif self.settings.google_application_credentials:
             os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = self.settings.google_application_credentials
+            print("Using file-based credentials")
 
     async def detect_furniture(
         self, image_content: bytes

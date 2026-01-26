@@ -9,6 +9,8 @@ class Settings(BaseSettings):
     # Google Cloud Vision API
     google_cloud_project: str = ""
     google_application_credentials: str = ""
+    # Base64-encoded credentials JSON for cloud deployment
+    google_credentials_base64: str = ""
 
     # CORS
     cors_origins: list[str] = ["*"]

@@ -20,5 +20,13 @@
         "simulator": false
       }
     }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "appleId": "itsedaxe@icloud.com",
+        "appleTeamId": "L2F3BCQWK7"
+      }
+    }
   }
 }
