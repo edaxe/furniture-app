@@ -1,3 +1,4 @@
+from typing import Optional
 from fastapi import APIRouter, Query
 from ..models.product import ProductMatchResponse
 from ..services.product_service import ProductService
@@ -14,6 +15,14 @@ async def get_product_matches(
         min_length=1,
         description="Furniture category to find matches for",
     ),
+    description: Optional[str] = Query(
+        default=None,
+        description="Detailed furniture description for better product matching",
+    ),
+    identified_product: Optional[str] = Query(
+        default=None,
+        description="Identified product name (brand + model) for exact matching",
+    ),
     limit: int = Query(
         default=3,
         ge=1,
@@ -24,19 +33,27 @@ async def get_product_matches(
     """
     Get product matches for a furniture category.
 
-    Returns a list of similar products from various retailers.
+    Returns exact matches (when identified_product is provided) and similar alternatives.
+    The `products` field contains all results concatenated for backward compatibility.
     """
     try:
-        products = await product_service.get_matches(category, limit)
+        exact_products, similar_products = await product_service.get_matches_with_exact(
+            category, limit, description, identified_product
+        )
         return ProductMatchResponse(
             success=True,
-            products=products,
+            products=exact_products + similar_products,
+            exact_products=exact_products,
+            similar_products=similar_products,
+            identified_product=identified_product,
             category=category,
         )
     except Exception as e:
         return ProductMatchResponse(
             success=False,
             products=[],
+            exact_products=[],
+            similar_products=[],
             category=category,
             error=str(e),
         )

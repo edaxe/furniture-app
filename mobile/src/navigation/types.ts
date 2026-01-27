@@ -33,6 +33,13 @@ export type DetectedFurniture = {
     width: number;
     height: number;
   };
+  description?: string;
+  color?: string;
+  material?: string;
+  style?: string;
+  brand?: string;
+  modelName?: string;
+  identifiedProduct?: string;
 };
 
 export type ProductMatch = {

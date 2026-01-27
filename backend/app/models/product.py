@@ -16,7 +16,14 @@ class ProductMatch(BaseModel):
 class ProductMatchResponse(BaseModel):
     success: bool = Field(..., description="Whether matching was successful")
     products: list[ProductMatch] = Field(
-        default_factory=list, description="List of matching products"
+        default_factory=list, description="List of matching products (backward compat: exact + similar)"
     )
+    exact_products: list[ProductMatch] = Field(
+        default_factory=list, description="Exact brand/model matches"
+    )
+    similar_products: list[ProductMatch] = Field(
+        default_factory=list, description="Similar alternative products"
+    )
+    identified_product: Optional[str] = Field(None, description="Identified product name echoed back")
     category: Optional[str] = Field(None, description="Searched category")
     error: Optional[str] = Field(None, description="Error message if any")

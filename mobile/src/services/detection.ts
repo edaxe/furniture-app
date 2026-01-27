@@ -7,6 +7,15 @@ interface DetectionResponse {
 
 interface ProductMatchResponse {
   products: ProductMatch[];
+  exact_products: ProductMatch[];
+  similar_products: ProductMatch[];
+  identified_product: string | null;
+}
+
+export interface ProductMatchResult {
+  exactProducts: ProductMatch[];
+  similarProducts: ProductMatch[];
+  identifiedProduct: string | null;
 }
 
 export async function detectFurniture(imageUri: string): Promise<DetectedFurniture[]> {
@@ -31,14 +40,28 @@ export async function detectFurniture(imageUri: string): Promise<DetectedFurnitu
   return response.data?.detections || [];
 }
 
-export async function getProductMatches(category: string): Promise<ProductMatch[]> {
-  const response = await apiClient.get<ProductMatchResponse>(
-    `/api/products/match?category=${encodeURIComponent(category)}`
-  );
+export async function getProductMatches(
+  category: string,
+  description?: string,
+  identifiedProduct?: string,
+): Promise<ProductMatchResult> {
+  let url = `/api/products/match?category=${encodeURIComponent(category)}`;
+  if (description) {
+    url += `&description=${encodeURIComponent(description)}`;
+  }
+  if (identifiedProduct) {
+    url += `&identified_product=${encodeURIComponent(identifiedProduct)}`;
+  }
+
+  const response = await apiClient.get<ProductMatchResponse>(url);
 
   if (response.error) {
     throw new Error(response.error);
   }
 
-  return response.data?.products || [];
+  return {
+    exactProducts: response.data?.exact_products || [],
+    similarProducts: response.data?.similar_products || [],
+    identifiedProduct: response.data?.identified_product || null,
+  };
 }

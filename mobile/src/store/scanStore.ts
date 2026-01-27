@@ -6,6 +6,9 @@ interface ScanState {
   detectedFurniture: DetectedFurniture[];
   selectedFurniture: DetectedFurniture | null;
   productMatches: ProductMatch[];
+  exactProducts: ProductMatch[];
+  similarProducts: ProductMatch[];
+  identifiedProduct: string | null;
   isLoading: boolean;
   error: string | null;
 
@@ -13,6 +16,11 @@ interface ScanState {
   setDetectedFurniture: (furniture: DetectedFurniture[]) => void;
   setSelectedFurniture: (furniture: DetectedFurniture | null) => void;
   setProductMatches: (products: ProductMatch[]) => void;
+  setProductMatchResult: (result: {
+    exactProducts: ProductMatch[];
+    similarProducts: ProductMatch[];
+    identifiedProduct: string | null;
+  }) => void;
   setIsLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   clearScan: () => void;
@@ -23,6 +31,9 @@ export const useScanStore = create<ScanState>((set) => ({
   detectedFurniture: [],
   selectedFurniture: null,
   productMatches: [],
+  exactProducts: [],
+  similarProducts: [],
+  identifiedProduct: null,
   isLoading: false,
   error: null,
 
@@ -30,6 +41,13 @@ export const useScanStore = create<ScanState>((set) => ({
   setDetectedFurniture: (furniture) => set({ detectedFurniture: furniture }),
   setSelectedFurniture: (furniture) => set({ selectedFurniture: furniture }),
   setProductMatches: (products) => set({ productMatches: products }),
+  setProductMatchResult: (result) =>
+    set({
+      exactProducts: result.exactProducts,
+      similarProducts: result.similarProducts,
+      identifiedProduct: result.identifiedProduct,
+      productMatches: [...result.exactProducts, ...result.similarProducts],
+    }),
   setIsLoading: (loading) => set({ isLoading: loading }),
   setError: (error) => set({ error }),
   clearScan: () =>
@@ -38,6 +56,9 @@ export const useScanStore = create<ScanState>((set) => ({
       detectedFurniture: [],
       selectedFurniture: null,
       productMatches: [],
+      exactProducts: [],
+      similarProducts: [],
+      identifiedProduct: null,
       isLoading: false,
       error: null,
     }),

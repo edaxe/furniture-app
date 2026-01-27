@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { DetectedFurniture, ProductMatch, Room } from '../navigation/types';
+import { DetectedFurniture, ProductMatch } from '../navigation/types';
 import { useListStore } from '../store/listStore';
 import { ProductCardSkeleton } from './SkeletonLoader';
 
@@ -20,7 +20,9 @@ interface ProductMatchModalProps {
   visible: boolean;
   onClose: () => void;
   furniture: DetectedFurniture | null;
-  products: ProductMatch[];
+  exactProducts: ProductMatch[];
+  similarProducts: ProductMatch[];
+  identifiedProduct: string | null;
   imageUri: string;
   isLoading?: boolean;
 }
@@ -29,7 +31,9 @@ export default function ProductMatchModal({
   visible,
   onClose,
   furniture,
-  products,
+  exactProducts,
+  similarProducts,
+  identifiedProduct,
   imageUri,
   isLoading,
 }: ProductMatchModalProps) {
@@ -85,6 +89,42 @@ export default function ProductMatchModal({
     }).format(price);
   };
 
+  const renderProductCard = (product: ProductMatch, accentColor: string) => (
+    <View key={product.id} style={[styles.productCard, { borderLeftWidth: 3, borderLeftColor: accentColor }]}>
+      <Image
+        source={{ uri: product.imageUrl }}
+        style={styles.productImage}
+        resizeMode="cover"
+      />
+      <View style={styles.productInfo}>
+        <Text style={styles.productName} numberOfLines={2}>
+          {product.name}
+        </Text>
+        <Text style={styles.retailer}>{product.retailer}</Text>
+        <Text style={styles.price}>
+          {formatPrice(product.price, product.currency)}
+        </Text>
+        <Text style={[styles.similarity, { color: accentColor }]}>
+          {Math.round(product.similarity * 100)}% match
+        </Text>
+      </View>
+      <View style={styles.actions}>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => handleProductPress(product)}
+        >
+          <Ionicons name="open-outline" size={20} color="#007AFF" />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => handleSavePress(product)}
+        >
+          <Ionicons name="bookmark-outline" size={20} color="#007AFF" />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
   return (
     <Modal
       visible={visible}
@@ -94,9 +134,17 @@ export default function ProductMatchModal({
     >
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>
-            {furniture?.label || 'Product Matches'}
-          </Text>
+          <View style={styles.headerLeft}>
+            <Text style={styles.title}>
+              {furniture?.label || 'Product Matches'}
+            </Text>
+            {identifiedProduct && (
+              <View style={styles.identifiedBadge}>
+                <Ionicons name="checkmark-circle" size={14} color="#34C759" />
+                <Text style={styles.identifiedBadgeText}>{identifiedProduct}</Text>
+              </View>
+            )}
+          </View>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <Ionicons name="close" size={24} color="#333" />
           </TouchableOpacity>
@@ -110,43 +158,27 @@ export default function ProductMatchModal({
           </View>
         ) : (
           <ScrollView style={styles.productList}>
-            {products.map((product) => (
-              <View key={product.id} style={styles.productCard}>
-                <Image
-                  source={{ uri: product.imageUrl }}
-                  style={styles.productImage}
-                  resizeMode="cover"
-                />
-                <View style={styles.productInfo}>
-                  <Text style={styles.productName} numberOfLines={2}>
-                    {product.name}
-                  </Text>
-                  <Text style={styles.retailer}>{product.retailer}</Text>
-                  <Text style={styles.price}>
-                    {formatPrice(product.price, product.currency)}
-                  </Text>
-                  <Text style={styles.similarity}>
-                    {Math.round(product.similarity * 100)}% match
-                  </Text>
+            {identifiedProduct && exactProducts.length > 0 && (
+              <View style={styles.section}>
+                <View style={styles.sectionHeaderRow}>
+                  <Ionicons name="checkmark-circle" size={18} color="#34C759" />
+                  <Text style={styles.sectionHeaderExact}>Exact Match</Text>
                 </View>
-                <View style={styles.actions}>
-                  <TouchableOpacity
-                    style={styles.actionButton}
-                    onPress={() => handleProductPress(product)}
-                  >
-                    <Ionicons name="open-outline" size={20} color="#007AFF" />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.actionButton}
-                    onPress={() => handleSavePress(product)}
-                  >
-                    <Ionicons name="bookmark-outline" size={20} color="#007AFF" />
-                  </TouchableOpacity>
-                </View>
+                {exactProducts.map((product) => renderProductCard(product, '#34C759'))}
               </View>
-            ))}
+            )}
 
-            {products.length === 0 && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeaderRow}>
+                <Ionicons name="search" size={18} color="#007AFF" />
+                <Text style={styles.sectionHeaderSimilar}>
+                  {identifiedProduct ? 'Similar Alternatives' : 'Matching Products'}
+                </Text>
+              </View>
+              {similarProducts.map((product) => renderProductCard(product, '#007AFF'))}
+            </View>
+
+            {exactProducts.length === 0 && similarProducts.length === 0 && (
               <View style={styles.emptyContainer}>
                 <Ionicons name="search-outline" size={48} color="#ccc" />
                 <Text style={styles.emptyText}>No matching products found</Text>
@@ -205,16 +237,56 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     padding: 16,
     backgroundColor: 'white',
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
+  headerLeft: {
+    flex: 1,
+    marginRight: 8,
+  },
   title: {
     fontSize: 18,
     fontWeight: '600',
     color: '#333',
+  },
+  identifiedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8F5E9',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginTop: 6,
+    alignSelf: 'flex-start',
+  },
+  identifiedBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#2E7D32',
+    marginLeft: 4,
+  },
+  section: {
+    marginBottom: 16,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  sectionHeaderExact: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#34C759',
+    marginLeft: 6,
+  },
+  sectionHeaderSimilar: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#007AFF',
+    marginLeft: 6,
   },
   closeButton: {
     padding: 4,

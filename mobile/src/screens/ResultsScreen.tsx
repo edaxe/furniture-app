@@ -13,7 +13,7 @@ import * as Haptics from 'expo-haptics';
 import BoundingBox from '../components/BoundingBox';
 import ProductMatchModal from '../components/ProductMatchModal';
 import ScanningAnimation from '../components/ScanningAnimation';
-import { ScanStackParamList, DetectedFurniture, ProductMatch } from '../navigation/types';
+import { ScanStackParamList, DetectedFurniture } from '../navigation/types';
 import { useScanStore } from '../store/scanStore';
 import { detectFurniture, getProductMatches } from '../services/detection';
 
@@ -32,8 +32,10 @@ export default function ResultsScreen() {
     setDetectedFurniture,
     selectedFurniture,
     setSelectedFurniture,
-    productMatches,
-    setProductMatches,
+    exactProducts,
+    similarProducts,
+    identifiedProduct,
+    setProductMatchResult,
     isLoading,
     setIsLoading,
     setError,
@@ -96,11 +98,15 @@ export default function ResultsScreen() {
       setLoadingProducts(true);
 
       try {
-        const matches = await getProductMatches(furniture.label);
-        setProductMatches(matches);
+        const result = await getProductMatches(
+          furniture.label,
+          furniture.description,
+          furniture.identifiedProduct,
+        );
+        setProductMatchResult(result);
       } catch (error) {
         console.error('Failed to get product matches:', error);
-        setProductMatches([]);
+        setProductMatchResult({ exactProducts: [], similarProducts: [], identifiedProduct: null });
       } finally {
         setLoadingProducts(false);
       }
@@ -111,7 +117,7 @@ export default function ResultsScreen() {
   const handleCloseModal = () => {
     setModalVisible(false);
     setSelectedFurniture(null);
-    setProductMatches([]);
+    setProductMatchResult({ exactProducts: [], similarProducts: [], identifiedProduct: null });
   };
 
   if (isLoading) {
@@ -152,7 +158,9 @@ export default function ResultsScreen() {
         visible={modalVisible}
         onClose={handleCloseModal}
         furniture={selectedFurniture}
-        products={productMatches}
+        exactProducts={exactProducts}
+        similarProducts={similarProducts}
+        identifiedProduct={identifiedProduct}
         imageUri={imageUri}
         isLoading={loadingProducts}
       />
