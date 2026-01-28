@@ -24,10 +24,10 @@ async def get_product_matches(
         description="Identified product name (brand + model) for exact matching",
     ),
     limit: int = Query(
-        default=3,
+        default=6,
         ge=1,
-        le=10,
-        description="Maximum number of products to return",
+        le=20,
+        description="Maximum number of products to return per category",
     ),
 ) -> ProductMatchResponse:
     """

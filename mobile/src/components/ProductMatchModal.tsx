@@ -7,11 +7,11 @@ import {
   TouchableOpacity,
   Image,
   ScrollView,
-  Linking,
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import * as WebBrowser from 'expo-web-browser';
 import { DetectedFurniture, ProductMatch } from '../navigation/types';
 import { useListStore } from '../store/listStore';
 import { ProductCardSkeleton } from './SkeletonLoader';
@@ -41,10 +41,12 @@ export default function ProductMatchModal({
   const [showRoomPicker, setShowRoomPicker] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<ProductMatch | null>(null);
 
-  const handleProductPress = (product: ProductMatch) => {
-    Linking.openURL(product.productUrl).catch(() => {
+  const handleProductPress = async (product: ProductMatch) => {
+    try {
+      await WebBrowser.openBrowserAsync(product.productUrl);
+    } catch {
       Alert.alert('Error', 'Could not open product link');
-    });
+    }
   };
 
   const handleSavePress = (product: ProductMatch) => {

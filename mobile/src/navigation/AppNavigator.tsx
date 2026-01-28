@@ -9,6 +9,8 @@ import ResultsScreen from '../screens/ResultsScreen';
 import DetectionFailedScreen from '../screens/DetectionFailedScreen';
 import ListsScreen from '../screens/ListsScreen';
 import RoomDetailScreen from '../screens/RoomDetailScreen';
+import OnboardingScreen from '../screens/OnboardingScreen';
+import { useOnboardingStore } from '../store/onboardingStore';
 
 import {
   RootTabParamList,
@@ -72,44 +74,58 @@ function ListsStackNavigator() {
   );
 }
 
+function MainAppNavigator() {
+  return (
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        tabBarIcon: ({ focused, color, size }) => {
+          let iconName: keyof typeof Ionicons.glyphMap;
+
+          if (route.name === 'Scan') {
+            iconName = focused ? 'camera' : 'camera-outline';
+          } else if (route.name === 'Lists') {
+            iconName = focused ? 'list' : 'list-outline';
+          } else {
+            iconName = 'help-outline';
+          }
+
+          return <Ionicons name={iconName} size={size} color={color} />;
+        },
+        tabBarActiveTintColor: '#007AFF',
+        tabBarInactiveTintColor: 'gray',
+        headerShown: false,
+      })}
+    >
+      <Tab.Screen
+        name="Scan"
+        component={ScanStackNavigator}
+        options={{
+          tabBarLabel: 'Scan',
+        }}
+      />
+      <Tab.Screen
+        name="Lists"
+        component={ListsStackNavigator}
+        options={{
+          tabBarLabel: 'My Lists',
+        }}
+      />
+    </Tab.Navigator>
+  );
+}
+
 export default function AppNavigator() {
+  const hasCompletedOnboarding = useOnboardingStore(
+    (state) => state.hasCompletedOnboarding
+  );
+
+  if (!hasCompletedOnboarding) {
+    return <OnboardingScreen />;
+  }
+
   return (
     <NavigationContainer>
-      <Tab.Navigator
-        screenOptions={({ route }) => ({
-          tabBarIcon: ({ focused, color, size }) => {
-            let iconName: keyof typeof Ionicons.glyphMap;
-
-            if (route.name === 'Scan') {
-              iconName = focused ? 'camera' : 'camera-outline';
-            } else if (route.name === 'Lists') {
-              iconName = focused ? 'list' : 'list-outline';
-            } else {
-              iconName = 'help-outline';
-            }
-
-            return <Ionicons name={iconName} size={size} color={color} />;
-          },
-          tabBarActiveTintColor: '#007AFF',
-          tabBarInactiveTintColor: 'gray',
-          headerShown: false,
-        })}
-      >
-        <Tab.Screen
-          name="Scan"
-          component={ScanStackNavigator}
-          options={{
-            tabBarLabel: 'Scan',
-          }}
-        />
-        <Tab.Screen
-          name="Lists"
-          component={ListsStackNavigator}
-          options={{
-            tabBarLabel: 'My Lists',
-          }}
-        />
-      </Tab.Navigator>
+      <MainAppNavigator />
     </NavigationContainer>
   );
 }

@@ -25,7 +25,8 @@
     "production": {
       "ios": {
         "appleId": "itsedaxe@icloud.com",
-        "appleTeamId": "L2F3BCQWK7"
+        "appleTeamId": "L2F3BCQWK7",
+        "ascAppId": "6758301141"
       }
     }
   }
