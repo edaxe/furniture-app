@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import SavedItemCard from '../components/SavedItemCard';
 import { ListsStackParamList, SavedItem } from '../navigation/types';
 import { useListStore } from '../store/listStore';
+import { colors, typography, fontFamily, borderRadius, spacing, shadows } from '../theme';
 
 type RoomDetailRouteProp = RouteProp<ListsStackParamList, 'RoomDetail'>;
 
@@ -42,10 +43,12 @@ export default function RoomDetailScreen() {
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
-      <Ionicons name="cube-outline" size={64} color="#ccc" />
-      <Text style={styles.emptyTitle}>No items saved</Text>
+      <View style={styles.emptyIconContainer}>
+        <Ionicons name="cube-outline" size={40} color={colors.accent[400]} />
+      </View>
+      <Text style={styles.emptyTitle}>No Items Yet</Text>
       <Text style={styles.emptySubtitle}>
-        Scan furniture and save matching products to this room
+        Scan furniture and save your favorite products to this room
       </Text>
     </View>
   );
@@ -84,40 +87,51 @@ export default function RoomDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background.secondary,
   },
   summaryContainer: {
-    backgroundColor: 'white',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    backgroundColor: colors.background.primary,
+    paddingVertical: spacing[4],
+    paddingHorizontal: spacing[5],
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    ...shadows.sm,
   },
   summaryText: {
-    fontSize: 14,
-    color: '#666',
-    fontWeight: '500',
+    ...typography.label,
+    color: colors.text.secondary,
   },
   listContent: {
-    padding: 16,
+    padding: spacing[4],
+    paddingTop: spacing[5],
     flexGrow: 1,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 40,
+    paddingHorizontal: spacing[8],
+  },
+  emptyIconContainer: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: colors.accent[50],
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing[5],
+    ...shadows.sm,
   },
   emptyTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#333',
-    marginTop: 16,
-    marginBottom: 8,
+    ...typography.h3,
+    color: colors.text.primary,
+    marginBottom: spacing[2],
   },
   emptySubtitle: {
-    fontSize: 14,
-    color: '#666',
+    ...typography.body,
+    color: colors.text.secondary,
     textAlign: 'center',
+    lineHeight: 24,
   },
 });

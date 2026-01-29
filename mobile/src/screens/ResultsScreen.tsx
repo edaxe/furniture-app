@@ -16,6 +16,7 @@ import ScanningAnimation from '../components/ScanningAnimation';
 import { ScanStackParamList, DetectedFurniture } from '../navigation/types';
 import { useScanStore } from '../store/scanStore';
 import { detectFurniture, getProductMatches } from '../services/detection';
+import { colors, typography, fontFamily, shadows, borderRadius, spacing } from '../theme';
 
 type ResultsScreenRouteProp = RouteProp<ScanStackParamList, 'Results'>;
 type ResultsScreenNavigationProp = NativeStackNavigationProp<ScanStackParamList, 'Results'>;
@@ -146,11 +147,16 @@ export default function ResultsScreen() {
       </View>
 
       <View style={styles.infoContainer}>
-        <Text style={styles.infoTitle}>
-          {detectedFurniture.length} item{detectedFurniture.length !== 1 ? 's' : ''} detected
-        </Text>
+        <View style={styles.infoHeader}>
+          <View style={styles.countBadge}>
+            <Text style={styles.countText}>{detectedFurniture.length}</Text>
+          </View>
+          <Text style={styles.infoTitle}>
+            Item{detectedFurniture.length !== 1 ? 's' : ''} Detected
+          </Text>
+        </View>
         <Text style={styles.infoSubtitle}>
-          Tap on a highlighted item to see matching products
+          Tap on any highlighted item to discover matching products
         </Text>
       </View>
 
@@ -171,11 +177,11 @@ export default function ResultsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background.secondary,
   },
   imageContainer: {
     width: SCREEN_WIDTH,
-    backgroundColor: '#000',
+    backgroundColor: colors.text.primary,
     position: 'relative',
   },
   image: {
@@ -184,20 +190,40 @@ const styles = StyleSheet.create({
     left: 0,
   },
   infoContainer: {
-    padding: 20,
-    backgroundColor: 'white',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    marginTop: -20,
+    padding: spacing[6],
+    paddingTop: spacing[5],
+    backgroundColor: colors.background.primary,
+    borderTopLeftRadius: borderRadius.xl + 4,
+    borderTopRightRadius: borderRadius.xl + 4,
+    marginTop: -spacing[6],
+    ...shadows.lg,
+  },
+  infoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing[2],
+  },
+  countBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.accent[500],
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing[3],
+  },
+  countText: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: 14,
+    color: colors.white,
   },
   infoTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#333',
-    marginBottom: 4,
+    ...typography.h4,
+    color: colors.text.primary,
   },
   infoSubtitle: {
-    fontSize: 14,
-    color: '#666',
+    ...typography.body,
+    color: colors.text.secondary,
+    lineHeight: 22,
   },
 });

@@ -8,6 +8,7 @@ import CameraView from '../components/CameraView';
 import { ScanStackParamList } from '../navigation/types';
 import { useScanStore } from '../store/scanStore';
 import { useUserStore } from '../store/userStore';
+import { colors, typography, fontFamily, borderRadius, spacing } from '../theme';
 
 type ScanScreenNavigationProp = NativeStackNavigationProp<ScanStackParamList, 'ScanHome'>;
 
@@ -60,9 +61,10 @@ export default function ScanScreen() {
       <CameraView onCapture={handleCapture} onGalleryPress={handleGalleryPress} />
 
       <View style={styles.scanCounter}>
-        <Text style={styles.scanCounterText}>
-          {scansRemaining} scans remaining
-        </Text>
+        <View style={styles.scanCounterBadge}>
+          <Text style={styles.scanCounterNumber}>{scansRemaining}</Text>
+        </View>
+        <Text style={styles.scanCounterText}>scans left</Text>
       </View>
     </View>
   );
@@ -71,20 +73,39 @@ export default function ScanScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'black',
+    backgroundColor: colors.text.primary,
   },
   scanCounter: {
     position: 'absolute',
     top: 60,
-    left: 20,
+    left: spacing[5],
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 15,
+    backdropFilter: 'blur(10px)',
+    paddingLeft: spacing[1],
+    paddingRight: spacing[4],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.full,
+    gap: spacing[2],
+  },
+  scanCounterBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.accent[500],
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scanCounterNumber: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: 13,
+    color: colors.white,
   },
   scanCounterText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: '500',
+    fontFamily: fontFamily.medium,
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.9)',
+    letterSpacing: 0.2,
   },
 });

@@ -1,6 +1,7 @@
 import React from 'react';
 import { TouchableOpacity, StyleSheet, Text, View } from 'react-native';
 import { DetectedFurniture } from '../navigation/types';
+import { colors, typography, fontFamily, borderRadius, spacing } from '../theme';
 
 interface BoundingBoxProps {
   furniture: DetectedFurniture;
@@ -52,38 +53,46 @@ const styles = StyleSheet.create({
   box: {
     position: 'absolute',
     borderWidth: 2,
-    borderColor: '#007AFF',
-    borderRadius: 4,
-    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+    borderColor: colors.accent[500],
+    borderRadius: borderRadius.sm,
+    backgroundColor: `${colors.accent[500]}10`,
   },
   selectedBox: {
-    borderColor: '#34C759',
-    backgroundColor: 'rgba(52, 199, 89, 0.15)',
-    borderWidth: 3,
+    borderColor: colors.success[500],
+    backgroundColor: `${colors.success[500]}15`,
+    borderWidth: 2.5,
   },
   labelContainer: {
     position: 'absolute',
-    top: -28,
+    top: -30,
     left: -2,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-    maxWidth: 150,
+    backgroundColor: colors.accent[500],
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.md,
+    maxWidth: 160,
+    shadowColor: colors.text.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
   },
   selectedLabel: {
-    backgroundColor: '#34C759',
+    backgroundColor: colors.success[500],
   },
   labelText: {
-    color: 'white',
+    color: colors.white,
+    fontFamily: fontFamily.semiBold,
     fontSize: 12,
-    fontWeight: '600',
-    marginRight: 4,
+    letterSpacing: 0.2,
+    marginRight: spacing[1],
   },
   confidenceText: {
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: 'rgba(255, 255, 255, 0.85)',
+    fontFamily: fontFamily.medium,
     fontSize: 10,
+    letterSpacing: 0.1,
   },
 });

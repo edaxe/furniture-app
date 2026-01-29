@@ -15,6 +15,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { DetectedFurniture, ProductMatch } from '../navigation/types';
 import { useListStore } from '../store/listStore';
 import { ProductCardSkeleton } from './SkeletonLoader';
+import { colors, typography, fontFamily, shadows, borderRadius, spacing } from '../theme';
 
 interface ProductMatchModalProps {
   visible: boolean;
@@ -91,8 +92,8 @@ export default function ProductMatchModal({
     }).format(price);
   };
 
-  const renderProductCard = (product: ProductMatch, accentColor: string) => (
-    <View key={product.id} style={[styles.productCard, { borderLeftWidth: 3, borderLeftColor: accentColor }]}>
+  const renderProductCard = (product: ProductMatch, matchColor: string) => (
+    <View key={product.id} style={styles.productCard}>
       <Image
         source={{ uri: product.imageUrl }}
         style={styles.productImage}
@@ -106,7 +107,7 @@ export default function ProductMatchModal({
         <Text style={styles.price}>
           {formatPrice(product.price, product.currency)}
         </Text>
-        <Text style={[styles.similarity, { color: accentColor }]}>
+        <Text style={[styles.similarity, { color: matchColor }]}>
           {Math.round(product.similarity * 100)}% match
         </Text>
       </View>
@@ -115,13 +116,13 @@ export default function ProductMatchModal({
           style={styles.actionButton}
           onPress={() => handleProductPress(product)}
         >
-          <Ionicons name="open-outline" size={20} color="#007AFF" />
+          <Ionicons name="open-outline" size={20} color={colors.text.secondary} />
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.actionButton}
           onPress={() => handleSavePress(product)}
         >
-          <Ionicons name="bookmark-outline" size={20} color="#007AFF" />
+          <Ionicons name="bookmark-outline" size={20} color={colors.text.secondary} />
         </TouchableOpacity>
       </View>
     </View>
@@ -142,13 +143,13 @@ export default function ProductMatchModal({
             </Text>
             {identifiedProduct && (
               <View style={styles.identifiedBadge}>
-                <Ionicons name="checkmark-circle" size={14} color="#34C759" />
+                <Ionicons name="checkmark-circle" size={14} color={colors.success[500]} />
                 <Text style={styles.identifiedBadgeText}>{identifiedProduct}</Text>
               </View>
             )}
           </View>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Ionicons name="close" size={24} color="#333" />
+            <Ionicons name="close" size={24} color={colors.text.secondary} />
           </TouchableOpacity>
         </View>
 
@@ -162,27 +163,21 @@ export default function ProductMatchModal({
           <ScrollView style={styles.productList}>
             {identifiedProduct && exactProducts.length > 0 && (
               <View style={styles.section}>
-                <View style={styles.sectionHeaderRow}>
-                  <Ionicons name="checkmark-circle" size={18} color="#34C759" />
-                  <Text style={styles.sectionHeaderExact}>Exact Match</Text>
-                </View>
-                {exactProducts.map((product) => renderProductCard(product, '#34C759'))}
+                <Text style={styles.sectionHeader}>EXACT MATCH</Text>
+                {exactProducts.map((product) => renderProductCard(product, colors.success[500]))}
               </View>
             )}
 
             <View style={styles.section}>
-              <View style={styles.sectionHeaderRow}>
-                <Ionicons name="search" size={18} color="#007AFF" />
-                <Text style={styles.sectionHeaderSimilar}>
-                  {identifiedProduct ? 'Similar Alternatives' : 'Matching Products'}
-                </Text>
-              </View>
-              {similarProducts.map((product) => renderProductCard(product, '#007AFF'))}
+              <Text style={styles.sectionHeader}>
+                {identifiedProduct ? 'SIMILAR ALTERNATIVES' : 'MATCHING PRODUCTS'}
+              </Text>
+              {similarProducts.map((product) => renderProductCard(product, colors.accent[500]))}
             </View>
 
             {exactProducts.length === 0 && similarProducts.length === 0 && (
               <View style={styles.emptyContainer}>
-                <Ionicons name="search-outline" size={48} color="#ccc" />
+                <Ionicons name="search-outline" size={48} color={colors.neutral[300]} />
                 <Text style={styles.emptyText}>No matching products found</Text>
               </View>
             )}
@@ -205,7 +200,7 @@ export default function ProductMatchModal({
                     style={styles.roomItem}
                     onPress={() => handleSaveToRoom(room.id)}
                   >
-                    <Ionicons name="home-outline" size={20} color="#333" />
+                    <Ionicons name="home-outline" size={20} color={colors.text.secondary} />
                     <Text style={styles.roomName}>{room.name}</Text>
                   </TouchableOpacity>
                 ))}
@@ -214,7 +209,7 @@ export default function ProductMatchModal({
                 style={styles.newRoomButton}
                 onPress={handleCreateRoom}
               >
-                <Ionicons name="add" size={20} color="#007AFF" />
+                <Ionicons name="add" size={20} color={colors.accent[500]} />
                 <Text style={styles.newRoomText}>Create New Room</Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -234,131 +229,106 @@ export default function ProductMatchModal({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background.secondary,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    padding: 16,
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    padding: spacing[4],
+    backgroundColor: colors.background.primary,
+    borderBottomWidth: 0.5,
+    borderBottomColor: colors.border.light,
   },
   headerLeft: {
     flex: 1,
-    marginRight: 8,
+    marginRight: spacing[2],
   },
   title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
+    ...typography.h5,
+    color: colors.text.primary,
   },
   identifiedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E8F5E9',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginTop: 6,
+    backgroundColor: colors.success[50],
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.md,
+    marginTop: spacing[2],
     alignSelf: 'flex-start',
   },
   identifiedBadgeText: {
+    fontFamily: fontFamily.semiBold,
     fontSize: 12,
-    fontWeight: '600',
-    color: '#2E7D32',
-    marginLeft: 4,
-  },
-  section: {
-    marginBottom: 16,
-  },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  sectionHeaderExact: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#34C759',
-    marginLeft: 6,
-  },
-  sectionHeaderSimilar: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#007AFF',
-    marginLeft: 6,
+    color: colors.success[700],
+    marginLeft: spacing[1],
   },
   closeButton: {
-    padding: 4,
+    padding: spacing[1],
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  section: {
+    marginBottom: spacing[4],
   },
-  loadingText: {
-    fontSize: 16,
-    color: '#666',
+  sectionHeader: {
+    ...typography.overline,
+    color: colors.text.tertiary,
+    marginBottom: spacing[3],
   },
   productList: {
     flex: 1,
-    padding: 16,
+    padding: spacing[4],
   },
   productCard: {
     flexDirection: 'row',
-    backgroundColor: 'white',
-    borderRadius: 12,
-    marginBottom: 12,
-    padding: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: colors.background.primary,
+    borderRadius: borderRadius.lg,
+    marginBottom: spacing[3],
+    padding: spacing[3],
+    ...shadows.sm,
   },
   productImage: {
     width: 80,
     height: 80,
-    borderRadius: 8,
-    backgroundColor: '#f0f0f0',
+    borderRadius: borderRadius.sm,
+    backgroundColor: colors.neutral[100],
   },
   productInfo: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: spacing[3],
     justifyContent: 'center',
   },
   productName: {
+    fontFamily: fontFamily.semiBold,
     fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
+    color: colors.text.primary,
+    marginBottom: spacing[1],
+    letterSpacing: 0.1,
   },
   retailer: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 4,
+    ...typography.caption,
+    color: colors.text.secondary,
+    marginBottom: spacing[1],
   },
   price: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#007AFF',
+    ...typography.priceSmall,
+    color: colors.text.primary,
   },
   similarity: {
-    fontSize: 11,
-    color: '#34C759',
-    marginTop: 2,
+    ...typography.overline,
+    marginTop: spacing[1],
   },
   actions: {
     justifyContent: 'center',
-    gap: 12,
+    gap: spacing[3],
   },
   actionButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: '#f0f0f0',
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.neutral[50],
+    borderWidth: 1,
+    borderColor: colors.border.light,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -369,28 +339,29 @@ const styles = StyleSheet.create({
     paddingTop: 60,
   },
   emptyText: {
-    fontSize: 16,
-    color: '#999',
-    marginTop: 12,
+    ...typography.bodyMedium,
+    color: colors.text.tertiary,
+    marginTop: spacing[3],
   },
   roomPickerOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: spacing[5],
   },
   roomPickerContainer: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 20,
+    backgroundColor: colors.background.primary,
+    borderRadius: borderRadius.lg,
+    padding: spacing[5],
     width: '100%',
     maxHeight: '60%',
+    ...shadows.lg,
   },
   roomPickerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 16,
+    ...typography.h5,
+    color: colors.text.primary,
+    marginBottom: spacing[4],
     textAlign: 'center',
   },
   roomList: {
@@ -399,34 +370,35 @@ const styles = StyleSheet.create({
   roomItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: '#f5f5f5',
-    marginBottom: 8,
+    padding: spacing[3],
+    borderRadius: borderRadius.sm,
+    backgroundColor: colors.neutral[100],
+    marginBottom: spacing[2],
   },
   roomName: {
-    fontSize: 16,
-    marginLeft: 12,
+    ...typography.bodyMedium,
+    color: colors.text.primary,
+    marginLeft: spacing[3],
   },
   newRoomButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 12,
-    marginTop: 8,
+    padding: spacing[3],
+    marginTop: spacing[2],
   },
   newRoomText: {
-    fontSize: 16,
-    color: '#007AFF',
-    marginLeft: 8,
+    ...typography.bodyMedium,
+    color: colors.accent[500],
+    marginLeft: spacing[2],
   },
   cancelButton: {
-    padding: 12,
+    padding: spacing[3],
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: spacing[2],
   },
   cancelText: {
-    fontSize: 16,
-    color: '#666',
+    ...typography.bodyMedium,
+    color: colors.text.secondary,
   },
 });

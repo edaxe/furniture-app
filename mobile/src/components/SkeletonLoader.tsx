@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Animated, ViewStyle } from 'react-native';
+import { colors, borderRadius, spacing, shadows } from '../theme';
 
 interface SkeletonLoaderProps {
   width: number | string;
@@ -8,20 +9,20 @@ interface SkeletonLoaderProps {
   style?: ViewStyle;
 }
 
-export function SkeletonLoader({ width, height, borderRadius = 8, style }: SkeletonLoaderProps) {
-  const opacity = useRef(new Animated.Value(0.3)).current;
+export function SkeletonLoader({ width, height, borderRadius: radius = 8, style }: SkeletonLoaderProps) {
+  const opacity = useRef(new Animated.Value(0.4)).current;
 
   useEffect(() => {
     const animation = Animated.loop(
       Animated.sequence([
         Animated.timing(opacity, {
-          toValue: 0.7,
-          duration: 800,
+          toValue: 0.8,
+          duration: 1000,
           useNativeDriver: true,
         }),
         Animated.timing(opacity, {
-          toValue: 0.3,
-          duration: 800,
+          toValue: 0.4,
+          duration: 1000,
           useNativeDriver: true,
         }),
       ])
@@ -31,24 +32,25 @@ export function SkeletonLoader({ width, height, borderRadius = 8, style }: Skele
   }, []);
 
   return (
-    <Animated.View
-      style={[
-        styles.skeleton,
-        { width, height, borderRadius, opacity },
-        style,
-      ]}
-    />
+    <View style={[styles.skeletonWrapper, { width, height, borderRadius: radius }, style]}>
+      <Animated.View
+        style={[
+          styles.skeleton,
+          { width: '100%', height: '100%', borderRadius: radius, opacity },
+        ]}
+      />
+    </View>
   );
 }
 
 export function ProductCardSkeleton() {
   return (
     <View style={styles.productCard}>
-      <SkeletonLoader width={80} height={80} borderRadius={8} />
+      <SkeletonLoader width={80} height={80} borderRadius={borderRadius.sm} />
       <View style={styles.productInfo}>
         <SkeletonLoader width="80%" height={16} />
-        <SkeletonLoader width="50%" height={12} style={{ marginTop: 8 }} />
-        <SkeletonLoader width="40%" height={18} style={{ marginTop: 8 }} />
+        <SkeletonLoader width="50%" height={12} style={{ marginTop: spacing[2] }} />
+        <SkeletonLoader width="40%" height={18} style={{ marginTop: spacing[2] }} />
       </View>
     </View>
   );
@@ -60,7 +62,7 @@ export function DetectionSkeleton() {
       <SkeletonLoader width="100%" height={300} borderRadius={0} />
       <View style={styles.detectionInfo}>
         <SkeletonLoader width="60%" height={24} />
-        <SkeletonLoader width="80%" height={14} style={{ marginTop: 8 }} />
+        <SkeletonLoader width="80%" height={14} style={{ marginTop: spacing[2] }} />
       </View>
     </View>
   );
@@ -72,44 +74,56 @@ export function RoomCardSkeleton() {
       <SkeletonLoader width={44} height={44} borderRadius={22} />
       <View style={styles.roomInfo}>
         <SkeletonLoader width="60%" height={16} />
-        <SkeletonLoader width="30%" height={12} style={{ marginTop: 6 }} />
+        <SkeletonLoader width="30%" height={12} style={{ marginTop: spacing[2] }} />
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  skeletonWrapper: {
+    backgroundColor: colors.neutral[100],
+    overflow: 'hidden',
+  },
   skeleton: {
-    backgroundColor: '#E1E1E1',
+    backgroundColor: colors.neutral[200],
   },
   productCard: {
     flexDirection: 'row',
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
+    backgroundColor: colors.background.primary,
+    borderRadius: borderRadius.lg,
+    padding: spacing[4],
+    marginBottom: spacing[3],
+    ...shadows.sm,
   },
   productInfo: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: spacing[4],
     justifyContent: 'center',
+    gap: spacing[2],
   },
   detectionContainer: {
-    backgroundColor: 'white',
+    backgroundColor: colors.background.primary,
+    borderRadius: borderRadius.xl,
+    overflow: 'hidden',
+    ...shadows.sm,
   },
   detectionInfo: {
-    padding: 20,
+    padding: spacing[5],
+    gap: spacing[3],
   },
   roomCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    backgroundColor: colors.background.primary,
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
+    marginBottom: spacing[3],
+    ...shadows.sm,
   },
   roomInfo: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: spacing[4],
+    gap: spacing[2],
   },
 });

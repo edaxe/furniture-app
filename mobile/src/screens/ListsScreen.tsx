@@ -10,10 +10,13 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 
 import RoomCard from '../components/RoomCard';
+import { Button } from '../components/ui';
 import { ListsStackParamList, Room } from '../navigation/types';
 import { useListStore } from '../store/listStore';
+import { colors, typography, fontFamily, shadows, borderRadius, spacing } from '../theme';
 
 type ListsScreenNavigationProp = NativeStackNavigationProp<ListsStackParamList, 'ListsHome'>;
 
@@ -47,7 +50,7 @@ export default function ListsScreen() {
   const handleDeleteRoom = (room: Room) => {
     Alert.alert(
       'Delete Room',
-      `Are you sure you want to delete "${room.name}"? All saved items in this room will be removed.`,
+      `Are you sure you want to delete "${room.name}"? All saved items will be removed.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -61,16 +64,34 @@ export default function ListsScreen() {
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
-      <Ionicons name="home-outline" size={64} color="#ccc" />
-      <Text style={styles.emptyTitle}>No rooms yet</Text>
+      <View style={styles.emptyIconContainer}>
+        <Ionicons name="bookmark-outline" size={36} color={colors.accent[500]} />
+      </View>
+      <Text style={styles.emptyTitle}>Start Your Collection</Text>
       <Text style={styles.emptySubtitle}>
-        Create a room to start saving furniture you find
+        Create rooms to organize{'\n'}the furniture you discover
       </Text>
-      <TouchableOpacity style={styles.emptyButton} onPress={handleAddRoom}>
-        <Text style={styles.emptyButtonText}>Create First Room</Text>
-      </TouchableOpacity>
+      <Button
+        title="Create First Room"
+        variant="primary"
+        size="large"
+        onPress={handleAddRoom}
+        icon={<Ionicons name="add" size={20} color={colors.white} />}
+      />
     </View>
   );
+
+  const renderHeader = () => {
+    if (rooms.length === 0) return null;
+    return (
+      <View style={styles.headerSection}>
+        <Text style={styles.sectionTitle}>Your Rooms</Text>
+        <Text style={styles.sectionSubtitle}>
+          {rooms.length} room{rooms.length !== 1 ? 's' : ''} • {rooms.reduce((acc, r) => acc + r.itemCount, 0)} items saved
+        </Text>
+      </View>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -86,11 +107,15 @@ export default function ListsScreen() {
         )}
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={renderEmpty}
+        ListHeaderComponent={renderHeader}
+        showsVerticalScrollIndicator={false}
       />
 
       {rooms.length > 0 && (
-        <TouchableOpacity style={styles.fab} onPress={handleAddRoom}>
-          <Ionicons name="add" size={28} color="white" />
+        <TouchableOpacity style={styles.fab} onPress={handleAddRoom} activeOpacity={0.9}>
+          <View style={styles.fabInner}>
+            <Ionicons name="add" size={28} color={colors.white} />
+          </View>
         </TouchableOpacity>
       )}
     </View>
@@ -100,56 +125,65 @@ export default function ListsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background.secondary,
   },
   listContent: {
-    padding: 16,
+    padding: spacing[5],
+    paddingBottom: 100,
     flexGrow: 1,
+  },
+  headerSection: {
+    marginBottom: spacing[5],
+  },
+  sectionTitle: {
+    ...typography.h2,
+    color: colors.text.primary,
+    marginBottom: spacing[1],
+  },
+  sectionSubtitle: {
+    ...typography.body,
+    color: colors.text.secondary,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 40,
+    paddingHorizontal: spacing[6],
+  },
+  emptyIconContainer: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: colors.accent[50],
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing[6],
+    ...shadows.md,
   },
   emptyTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#333',
-    marginTop: 16,
-    marginBottom: 8,
+    ...typography.h2,
+    color: colors.text.primary,
+    marginBottom: spacing[2],
   },
   emptySubtitle: {
-    fontSize: 14,
-    color: '#666',
+    ...typography.body,
+    color: colors.text.secondary,
     textAlign: 'center',
-    marginBottom: 24,
-  },
-  emptyButton: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 10,
-  },
-  emptyButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
+    marginBottom: spacing[6],
+    lineHeight: 24,
   },
   fab: {
     position: 'absolute',
-    right: 20,
-    bottom: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#007AFF',
+    right: spacing[5],
+    bottom: spacing[6],
+  },
+  fabInner: {
+    width: 60,
+    height: 60,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.text.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 8,
+    ...shadows.lg,
   },
 });

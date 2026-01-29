@@ -28,19 +28,19 @@ export default function CaptureButton({ onPress, disabled }: CaptureButtonProps)
 
 const styles = StyleSheet.create({
   button: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'white',
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 4,
-    borderColor: 'rgba(255, 255, 255, 0.5)',
+    borderWidth: 3,
+    borderColor: 'white',
   },
   innerCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 62,
+    height: 62,
+    borderRadius: 31,
     backgroundColor: 'white',
   },
   disabled: {

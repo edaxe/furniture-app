@@ -1,9 +1,11 @@
 import React, { useRef, useState } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Animated } from 'react-native';
 import { CameraView as ExpoCameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import CaptureButton from './CaptureButton';
+import { colors, typography, fontFamily, borderRadius, spacing, shadows } from '../theme';
 
 interface CameraViewProps {
   onCapture: (uri: string) => void;
@@ -22,13 +24,28 @@ export default function CameraView({ onCapture, onGalleryPress }: CameraViewProp
 
   if (!permission.granted) {
     return (
-      <View style={styles.permissionContainer}>
-        <Ionicons name="camera-outline" size={64} color="#666" />
-        <Text style={styles.permissionText}>Camera access is required to scan furniture</Text>
-        <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
-          <Text style={styles.permissionButtonText}>Grant Permission</Text>
+      <LinearGradient
+        colors={[colors.background.secondary, colors.background.primary]}
+        style={styles.permissionContainer}
+      >
+        <View style={styles.permissionIconContainer}>
+          <Ionicons name="camera-outline" size={48} color={colors.accent[500]} />
+        </View>
+        <Text style={styles.permissionTitle}>Camera Access</Text>
+        <Text style={styles.permissionText}>
+          We need camera access to scan and identify furniture in your photos
+        </Text>
+        <TouchableOpacity
+          style={styles.permissionButton}
+          onPress={requestPermission}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.permissionButtonText}>Enable Camera</Text>
         </TouchableOpacity>
-      </View>
+        <Text style={styles.permissionNote}>
+          Your photos are processed securely and never stored
+        </Text>
+      </LinearGradient>
     );
   }
 
@@ -105,14 +122,14 @@ const styles = StyleSheet.create({
   topBar: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    padding: 20,
+    padding: spacing[5],
     paddingTop: 60,
   },
   iconButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -127,31 +144,31 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 30,
     height: 30,
-    borderColor: 'white',
+    borderColor: 'rgba(255, 255, 255, 0.8)',
   },
   topLeft: {
     top: 0,
     left: 0,
-    borderTopWidth: 3,
-    borderLeftWidth: 3,
+    borderTopWidth: 2,
+    borderLeftWidth: 2,
   },
   topRight: {
     top: 0,
     right: 0,
-    borderTopWidth: 3,
-    borderRightWidth: 3,
+    borderTopWidth: 2,
+    borderRightWidth: 2,
   },
   bottomLeft: {
     bottom: 0,
     left: 0,
-    borderBottomWidth: 3,
-    borderLeftWidth: 3,
+    borderBottomWidth: 2,
+    borderLeftWidth: 2,
   },
   bottomRight: {
     bottom: 0,
     right: 0,
-    borderBottomWidth: 3,
-    borderRightWidth: 3,
+    borderBottomWidth: 2,
+    borderRightWidth: 2,
   },
   bottomBar: {
     flexDirection: 'row',
@@ -164,7 +181,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -174,27 +191,49 @@ const styles = StyleSheet.create({
   },
   permissionContainer: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 40,
+    padding: spacing[8],
+  },
+  permissionIconContainer: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: colors.accent[50],
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing[6],
+    ...shadows.md,
+  },
+  permissionTitle: {
+    ...typography.h2,
+    color: colors.text.primary,
+    marginBottom: spacing[3],
+    textAlign: 'center',
   },
   permissionText: {
-    color: '#999',
-    fontSize: 16,
+    ...typography.body,
+    color: colors.text.secondary,
     textAlign: 'center',
-    marginTop: 20,
-    marginBottom: 30,
+    marginBottom: spacing[8],
+    paddingHorizontal: spacing[4],
+    lineHeight: 24,
   },
   permissionButton: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 30,
-    paddingVertical: 14,
-    borderRadius: 10,
+    backgroundColor: colors.text.primary,
+    paddingHorizontal: spacing[10],
+    paddingVertical: spacing[4],
+    borderRadius: borderRadius.lg,
+    ...shadows.md,
   },
   permissionButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
+    ...typography.buttonLarge,
+    color: colors.white,
+  },
+  permissionNote: {
+    ...typography.caption,
+    color: colors.text.tertiary,
+    marginTop: spacing[6],
+    textAlign: 'center',
   },
 });

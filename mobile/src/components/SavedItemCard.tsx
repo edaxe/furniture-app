@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SavedItem } from '../navigation/types';
+import { colors, typography, fontFamily, shadows, borderRadius, spacing } from '../theme';
 
 interface SavedItemCardProps {
   item: SavedItem;
@@ -53,13 +54,13 @@ export default function SavedItemCard({ item, onDelete }: SavedItemCardProps) {
 
       <View style={styles.actions}>
         <TouchableOpacity style={styles.actionButton} onPress={handleOpenLink}>
-          <Ionicons name="open-outline" size={20} color="#007AFF" />
+          <Ionicons name="open-outline" size={20} color={colors.text.secondary} />
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.actionButton}
           onPress={() => onDelete(item)}
         >
-          <Ionicons name="trash-outline" size={20} color="#FF3B30" />
+          <Ionicons name="trash-outline" size={20} color={colors.error[500]} />
         </TouchableOpacity>
       </View>
     </View>
@@ -69,59 +70,55 @@ export default function SavedItemCard({ item, onDelete }: SavedItemCardProps) {
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    backgroundColor: colors.background.primary,
+    borderRadius: borderRadius.lg,
+    padding: spacing[3],
+    marginBottom: spacing[3],
+    ...shadows.sm,
   },
   productImage: {
     width: 80,
     height: 80,
-    borderRadius: 8,
-    backgroundColor: '#f0f0f0',
+    borderRadius: borderRadius.sm,
+    backgroundColor: colors.neutral[100],
   },
   content: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: spacing[3],
     justifyContent: 'center',
   },
   furnitureType: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#007AFF',
-    textTransform: 'uppercase',
-    marginBottom: 4,
+    ...typography.overline,
+    color: colors.accent[500],
+    marginBottom: spacing[1],
   },
   productName: {
+    fontFamily: fontFamily.semiBold,
     fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
+    color: colors.text.primary,
+    marginBottom: spacing[1],
+    letterSpacing: 0.1,
   },
   retailer: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 4,
+    ...typography.caption,
+    color: colors.text.secondary,
+    marginBottom: spacing[1],
   },
   price: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#333',
+    ...typography.priceSmall,
+    color: colors.text.primary,
   },
   actions: {
     justifyContent: 'space-around',
-    paddingLeft: 8,
+    paddingLeft: spacing[2],
   },
   actionButton: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: '#f0f0f0',
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.neutral[50],
+    borderWidth: 1,
+    borderColor: colors.border.light,
     justifyContent: 'center',
     alignItems: 'center',
   },

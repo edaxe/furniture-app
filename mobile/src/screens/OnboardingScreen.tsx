@@ -5,66 +5,62 @@ import {
   Text,
   Dimensions,
   FlatList,
+  Animated,
   TouchableOpacity,
-  SafeAreaView,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useOnboardingStore } from '../store/onboardingStore';
+import { Button } from '../components/ui';
+import { colors, typography, borderRadius, spacing } from '../theme';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface OnboardingSlide {
   id: string;
   icon: keyof typeof Ionicons.glyphMap;
-  iconColor: string;
   title: string;
+  subtitle: string;
   description: string;
+  gradient: [string, string];
 }
 
 const slides: OnboardingSlide[] = [
   {
     id: '1',
-    icon: 'home',
-    iconColor: '#007AFF',
-    title: 'Welcome to RoomRadar',
-    description:
-      'Discover furniture you love by simply taking a photo. Our AI identifies pieces and finds where to buy them.',
+    icon: 'scan-outline',
+    title: 'Scan',
+    subtitle: 'Any Room',
+    description: 'Point your camera at furniture and let AI identify each piece instantly.',
+    gradient: ['#F8F6F4', '#EDE8E3'],
   },
   {
     id: '2',
-    icon: 'camera',
-    iconColor: '#34C759',
-    title: 'Scan Any Room',
-    description:
-      'Point your camera at any furniture piece or room. Our AI will detect and identify each item automatically.',
+    icon: 'sparkles-outline',
+    title: 'Discover',
+    subtitle: 'Perfect Matches',
+    description: 'Get curated product recommendations from top retailers worldwide.',
+    gradient: ['#F4F6F8', '#E3E8ED'],
   },
   {
     id: '3',
-    icon: 'cart',
-    iconColor: '#FF9500',
-    title: 'Shop Matching Products',
-    description:
-      'Get instant product matches from top retailers. Compare prices and find the best deals on furniture you love.',
-  },
-  {
-    id: '4',
-    icon: 'bookmark',
-    iconColor: '#AF52DE',
-    title: 'Save & Organize',
-    description:
-      'Create rooms to organize your favorite finds. Build your dream space one piece at a time.',
+    icon: 'bookmark-outline',
+    title: 'Save',
+    subtitle: '& Organize',
+    description: 'Create rooms and build your dream space one piece at a time.',
+    gradient: ['#F6F8F4', '#E8EDE3'],
   },
 ];
 
 export default function OnboardingScreen() {
   const flatListRef = useRef<FlatList>(null);
+  const scrollX = useRef(new Animated.Value(0)).current;
   const [currentIndex, setCurrentIndex] = useState(0);
   const completeOnboarding = useOnboardingStore((state) => state.completeOnboarding);
 
   const handleNext = () => {
     if (currentIndex < slides.length - 1) {
       flatListRef.current?.scrollToIndex({ index: currentIndex + 1 });
-      setCurrentIndex(currentIndex + 1);
     } else {
       completeOnboarding();
     }
@@ -74,43 +70,86 @@ export default function OnboardingScreen() {
     completeOnboarding();
   };
 
-  const renderSlide = ({ item }: { item: OnboardingSlide }) => (
-    <View style={styles.slide}>
-      <View style={[styles.iconContainer, { backgroundColor: `${item.iconColor}15` }]}>
-        <Ionicons name={item.icon} size={80} color={item.iconColor} />
+  const renderSlide = ({ item, index }: { item: OnboardingSlide; index: number }) => {
+    const inputRange = [
+      (index - 1) * SCREEN_WIDTH,
+      index * SCREEN_WIDTH,
+      (index + 1) * SCREEN_WIDTH,
+    ];
+
+    const scale = scrollX.interpolate({
+      inputRange,
+      outputRange: [0.8, 1, 0.8],
+      extrapolate: 'clamp',
+    });
+
+    const opacity = scrollX.interpolate({
+      inputRange,
+      outputRange: [0.4, 1, 0.4],
+      extrapolate: 'clamp',
+    });
+
+    return (
+      <View style={styles.slide}>
+        <LinearGradient colors={item.gradient} style={styles.gradientBg}>
+          <Animated.View style={[styles.iconWrapper, { transform: [{ scale }], opacity }]}>
+            <View style={styles.iconCircle}>
+              <Ionicons name={item.icon} size={48} color={colors.accent[500]} />
+            </View>
+          </Animated.View>
+        </LinearGradient>
+
+        <View style={styles.content}>
+          <Text style={styles.title}>{item.title}</Text>
+          <Text style={styles.subtitle}>{item.subtitle}</Text>
+          <Text style={styles.description}>{item.description}</Text>
+        </View>
       </View>
-      <Text style={styles.title}>{item.title}</Text>
-      <Text style={styles.description}>{item.description}</Text>
-    </View>
-  );
+    );
+  };
 
   const renderPagination = () => (
     <View style={styles.pagination}>
-      {slides.map((_, index) => (
-        <View
-          key={index}
-          style={[
-            styles.dot,
-            index === currentIndex ? styles.dotActive : styles.dotInactive,
-          ]}
-        />
-      ))}
+      {slides.map((_, index) => {
+        const inputRange = [
+          (index - 1) * SCREEN_WIDTH,
+          index * SCREEN_WIDTH,
+          (index + 1) * SCREEN_WIDTH,
+        ];
+
+        const width = scrollX.interpolate({
+          inputRange,
+          outputRange: [8, 24, 8],
+          extrapolate: 'clamp',
+        });
+
+        const bgColor = scrollX.interpolate({
+          inputRange,
+          outputRange: [colors.neutral[200], colors.text.primary, colors.neutral[200]],
+          extrapolate: 'clamp',
+        });
+
+        return (
+          <Animated.View
+            key={index}
+            style={[styles.dot, { width, backgroundColor: bgColor }]}
+          />
+        );
+      })}
     </View>
   );
 
   const isLastSlide = currentIndex === slides.length - 1;
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        {!isLastSlide && (
-          <TouchableOpacity onPress={handleSkip} style={styles.skipButton}>
-            <Text style={styles.skipText}>Skip</Text>
-          </TouchableOpacity>
-        )}
-      </View>
+    <View style={styles.container}>
+      {!isLastSlide && (
+        <TouchableOpacity style={styles.skipContainer} onPress={handleSkip}>
+          <Text style={styles.skipText}>Skip</Text>
+        </TouchableOpacity>
+      )}
 
-      <FlatList
+      <Animated.FlatList
         ref={flatListRef}
         data={slides}
         renderItem={renderSlide}
@@ -118,6 +157,10 @@ export default function OnboardingScreen() {
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+          { useNativeDriver: false }
+        )}
         onMomentumScrollEnd={(event) => {
           const index = Math.round(event.nativeEvent.contentOffset.x / SCREEN_WIDTH);
           setCurrentIndex(index);
@@ -128,110 +171,92 @@ export default function OnboardingScreen() {
       {renderPagination()}
 
       <View style={styles.footer}>
-        <TouchableOpacity
-          style={[styles.button, isLastSlide && styles.buttonGetStarted]}
+        <Button
+          title={isLastSlide ? 'Get Started' : 'Continue'}
+          variant="primary"
+          size="large"
+          fullWidth
           onPress={handleNext}
-        >
-          <Text style={[styles.buttonText, isLastSlide && styles.buttonTextGetStarted]}>
-            {isLastSlide ? 'Get Started' : 'Next'}
-          </Text>
-          {!isLastSlide && (
-            <Ionicons name="arrow-forward" size={20} color="#007AFF" />
-          )}
-        </TouchableOpacity>
+        />
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background.primary,
   },
-  header: {
-    height: 50,
-    justifyContent: 'center',
-    alignItems: 'flex-end',
-    paddingHorizontal: 20,
-  },
-  skipButton: {
-    padding: 8,
+  skipContainer: {
+    position: 'absolute',
+    top: 60,
+    right: spacing[5],
+    zIndex: 10,
+    padding: spacing[2],
   },
   skipText: {
-    fontSize: 16,
-    color: '#666',
+    ...typography.label,
+    color: colors.text.secondary,
   },
   slide: {
     width: SCREEN_WIDTH,
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 40,
   },
-  iconContainer: {
-    width: 160,
-    height: 160,
-    borderRadius: 80,
+  gradientBg: {
+    height: SCREEN_HEIGHT * 0.5,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  iconWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 40,
+  },
+  iconCircle: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: colors.background.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: colors.text.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 24,
+    elevation: 8,
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: spacing[6],
+    paddingTop: spacing[8],
   },
   title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#333',
-    textAlign: 'center',
-    marginBottom: 16,
+    ...typography.displayMedium,
+    color: colors.text.primary,
+  },
+  subtitle: {
+    ...typography.displayMedium,
+    color: colors.accent[500],
+    marginBottom: spacing[4],
   },
   description: {
-    fontSize: 17,
-    color: '#666',
-    textAlign: 'center',
-    lineHeight: 26,
+    ...typography.bodyLarge,
+    color: colors.text.secondary,
+    lineHeight: 28,
   },
   pagination: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 20,
+    gap: spacing[2],
+    marginBottom: spacing[6],
   },
   dot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginHorizontal: 5,
-  },
-  dotActive: {
-    backgroundColor: '#007AFF',
-    width: 24,
-  },
-  dotInactive: {
-    backgroundColor: '#D1D1D6',
+    height: 8,
+    borderRadius: 4,
   },
   footer: {
-    paddingHorizontal: 20,
-    paddingBottom: 30,
-  },
-  button: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    borderRadius: 12,
-    backgroundColor: '#F2F2F7',
-    gap: 8,
-  },
-  buttonGetStarted: {
-    backgroundColor: '#007AFF',
-  },
-  buttonText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#007AFF',
-  },
-  buttonTextGetStarted: {
-    color: '#fff',
+    paddingHorizontal: spacing[6],
+    paddingBottom: 40,
   },
 });
