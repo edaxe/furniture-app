@@ -1,0 +1,53 @@
+name: EAS Update
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Update branch'
+        required: true
+        default: 'production'
+        type: string
+      message:
+        description: 'Update message'
+        required: true
+        default: 'Update from GitHub Actions'
+        type: string
+  push:
+    branches:
+      - main
+
+jobs:
+  update:
+    name: EAS Update
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Setup Expo
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Publish update
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            eas update --branch ${{ github.event.inputs.branch }} --message "${{ github.event.inputs.message }}" --non-interactive
+          else
+            eas update --branch production --message "Auto-update from main branch" --non-interactive
+          fi
