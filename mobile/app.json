@@ -19,7 +19,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.furnishsnap.app",
-      "buildNumber": "5",
+      "buildNumber": "6",
       "infoPlist": {
         "NSCameraUsageDescription": "RoomRadar needs camera access to scan and identify furniture in your photos.",
         "NSPhotoLibraryUsageDescription": "RoomRadar needs photo library access to select images of furniture to scan.",
@@ -45,6 +45,15 @@
       "eas": {
         "projectId": "1ed7d88f-51a0-450b-b875-4398c60ab1df"
       }
+    },
+    "updates": {
+      "url": "https://u.expo.dev/1ed7d88f-51a0-450b-b875-4398c60ab1df"
+    },
+    "android": {
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
     }
   }
 }
