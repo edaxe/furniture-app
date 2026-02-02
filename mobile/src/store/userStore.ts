@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuthStore } from './authStore';
 
-const MAX_FREE_SCANS = 5;
+const MAX_FREE_SCANS = 10;
 
 interface UserState {
   scansRemaining: number;
@@ -12,6 +13,8 @@ interface UserState {
   decrementScans: () => void;
   resetScansIfNewMonth: () => void;
   setPro: (isPro: boolean) => void;
+  resetUser: () => void;
+  getIsPremium: () => boolean;
 }
 
 const getMonthKey = () => {
@@ -27,17 +30,27 @@ export const useUserStore = create<UserState>()(
       isPro: false,
 
       decrementScans: () => {
-        const { isPro, scansRemaining } = get();
-        if (isPro) return;
+        // Check auth store for premium status
+        const { subscription } = useAuthStore.getState();
+        const isPremium = subscription === 'premium' || get().isPro;
+
+        // Premium users don't use scans
+        if (isPremium) return;
+
+        const { scansRemaining } = get();
         if (scansRemaining > 0) {
           set({ scansRemaining: scansRemaining - 1 });
         }
       },
 
       resetScansIfNewMonth: () => {
-        const { lastResetDate, isPro } = get();
-        if (isPro) return;
+        // Check auth store for premium status
+        const { subscription } = useAuthStore.getState();
+        const isPremium = subscription === 'premium' || get().isPro;
 
+        if (isPremium) return;
+
+        const { lastResetDate } = get();
         const currentMonth = getMonthKey();
         if (lastResetDate !== currentMonth) {
           set({
@@ -47,7 +60,26 @@ export const useUserStore = create<UserState>()(
         }
       },
 
-      setPro: (isPro) => set({ isPro }),
+      setPro: (isPro) => {
+        set({ isPro });
+        // Also update auth store subscription
+        if (isPro) {
+          useAuthStore.getState().setSubscription('premium');
+        }
+      },
+
+      resetUser: () =>
+        set({
+          scansRemaining: MAX_FREE_SCANS,
+          lastResetDate: null,
+          isPro: false,
+        }),
+
+      // Helper to check premium status from both stores
+      getIsPremium: () => {
+        const { subscription } = useAuthStore.getState();
+        return subscription === 'premium' || get().isPro;
+      },
     }),
     {
       name: 'user-storage',

@@ -14,7 +14,10 @@ import * as Haptics from 'expo-haptics';
 import * as WebBrowser from 'expo-web-browser';
 import { DetectedFurniture, ProductMatch } from '../navigation/types';
 import { useListStore } from '../store/listStore';
+import { useFeatureAccess } from '../hooks/useFeatureAccess';
 import { ProductCardSkeleton } from './SkeletonLoader';
+import AuthModal from './AuthModal';
+import PaywallModal from './PaywallModal';
 import { colors, typography, fontFamily, shadows, borderRadius, spacing } from '../theme';
 
 interface ProductMatchModalProps {
@@ -38,9 +41,22 @@ export default function ProductMatchModal({
   imageUri,
   isLoading,
 }: ProductMatchModalProps) {
-  const { rooms, addRoom, saveItem } = useListStore();
+  const { rooms, addRoom, saveItem, canAddRoom } = useListStore();
+  const { isAuthenticated, isPremium, canSave, matchLimit, canCreateRoom } = useFeatureAccess();
+
   const [showRoomPicker, setShowRoomPicker] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<ProductMatch | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showPaywallModal, setShowPaywallModal] = useState(false);
+
+  // Apply match limit for free users
+  const limitedExactProducts = exactProducts.slice(0, matchLimit);
+  const remainingSlots = Math.max(0, matchLimit - limitedExactProducts.length);
+  const limitedSimilarProducts = similarProducts.slice(0, remainingSlots || matchLimit);
+
+  const totalProducts = exactProducts.length + similarProducts.length;
+  const visibleProducts = limitedExactProducts.length + limitedSimilarProducts.length;
+  const hiddenProducts = totalProducts - visibleProducts;
 
   const handleProductPress = async (product: ProductMatch) => {
     try {
@@ -51,6 +67,12 @@ export default function ProductMatchModal({
   };
 
   const handleSavePress = (product: ProductMatch) => {
+    // Gate save action for unauthenticated users
+    if (!canSave) {
+      setShowAuthModal(true);
+      return;
+    }
+
     setSelectedProduct(product);
     setShowRoomPicker(true);
   };
@@ -66,6 +88,13 @@ export default function ProductMatchModal({
   };
 
   const handleCreateRoom = () => {
+    // Check if user can create more rooms
+    if (!canCreateRoom) {
+      setShowRoomPicker(false);
+      setShowPaywallModal(true);
+      return;
+    }
+
     Alert.prompt(
       'New Room',
       'Enter room name',
@@ -83,6 +112,10 @@ export default function ProductMatchModal({
       ],
       'plain-text'
     );
+  };
+
+  const handleSeeAllMatches = () => {
+    setShowPaywallModal(true);
   };
 
   const formatPrice = (price: number, currency: string) => {
@@ -128,6 +161,27 @@ export default function ProductMatchModal({
     </View>
   );
 
+  const renderUpsellCard = () => {
+    if (isPremium || hiddenProducts <= 0) return null;
+
+    return (
+      <TouchableOpacity style={styles.upsellCard} onPress={handleSeeAllMatches}>
+        <View style={styles.upsellIcon}>
+          <Ionicons name="sparkles" size={24} color={colors.accent[500]} />
+        </View>
+        <View style={styles.upsellContent}>
+          <Text style={styles.upsellTitle}>
+            +{hiddenProducts} more match{hiddenProducts > 1 ? 'es' : ''} available
+          </Text>
+          <Text style={styles.upsellSubtitle}>
+            Upgrade to Premium to see all results
+          </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={20} color={colors.accent[500]} />
+      </TouchableOpacity>
+    );
+  };
+
   return (
     <Modal
       visible={visible}
@@ -161,10 +215,10 @@ export default function ProductMatchModal({
           </View>
         ) : (
           <ScrollView style={styles.productList}>
-            {identifiedProduct && exactProducts.length > 0 && (
+            {identifiedProduct && limitedExactProducts.length > 0 && (
               <View style={styles.section}>
                 <Text style={styles.sectionHeader}>EXACT MATCH</Text>
-                {exactProducts.map((product) => renderProductCard(product, colors.success[500]))}
+                {limitedExactProducts.map((product) => renderProductCard(product, colors.success[500]))}
               </View>
             )}
 
@@ -172,10 +226,12 @@ export default function ProductMatchModal({
               <Text style={styles.sectionHeader}>
                 {identifiedProduct ? 'SIMILAR ALTERNATIVES' : 'MATCHING PRODUCTS'}
               </Text>
-              {similarProducts.map((product) => renderProductCard(product, colors.accent[500]))}
+              {limitedSimilarProducts.map((product) => renderProductCard(product, colors.accent[500]))}
             </View>
 
-            {exactProducts.length === 0 && similarProducts.length === 0 && (
+            {renderUpsellCard()}
+
+            {limitedExactProducts.length === 0 && limitedSimilarProducts.length === 0 && (
               <View style={styles.emptyContainer}>
                 <Ionicons name="search-outline" size={48} color={colors.neutral[300]} />
                 <Text style={styles.emptyText}>No matching products found</Text>
@@ -184,6 +240,7 @@ export default function ProductMatchModal({
           </ScrollView>
         )}
 
+        {/* Room Picker Modal */}
         <Modal
           visible={showRoomPicker}
           animationType="fade"
@@ -221,6 +278,21 @@ export default function ProductMatchModal({
             </View>
           </View>
         </Modal>
+
+        {/* Auth Modal for Save Gate */}
+        <AuthModal
+          visible={showAuthModal}
+          onClose={() => setShowAuthModal(false)}
+          allowDismiss={true}
+          title="Sign up to save"
+          subtitle="Create an account to save furniture to your lists"
+        />
+
+        {/* Paywall Modal for Premium Features */}
+        <PaywallModal
+          visible={showPaywallModal}
+          onClose={() => setShowPaywallModal(false)}
+        />
       </View>
     </Modal>
   );
@@ -331,6 +403,37 @@ const styles = StyleSheet.create({
     borderColor: colors.border.light,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  upsellCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.accent[50],
+    borderRadius: borderRadius.lg,
+    padding: spacing[4],
+    marginTop: spacing[2],
+    borderWidth: 1,
+    borderColor: colors.accent[200],
+  },
+  upsellIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.background.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing[3],
+  },
+  upsellContent: {
+    flex: 1,
+  },
+  upsellTitle: {
+    ...typography.label,
+    color: colors.text.primary,
+    marginBottom: spacing[1],
+  },
+  upsellSubtitle: {
+    ...typography.caption,
+    color: colors.text.secondary,
   },
   emptyContainer: {
     flex: 1,

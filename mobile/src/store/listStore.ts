@@ -2,6 +2,9 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Room, SavedItem, DetectedFurniture, ProductMatch } from '../navigation/types';
+import { useAuthStore } from './authStore';
+
+const FREE_ROOM_LIMIT = 1;
 
 interface ListState {
   rooms: Room[];
@@ -20,6 +23,9 @@ interface ListState {
   removeItem: (itemId: string) => void;
 
   getItemsByRoom: (roomId: string) => SavedItem[];
+  canAddRoom: () => boolean;
+  getRoomLimit: () => number;
+  clearAll: () => void;
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
@@ -92,6 +98,26 @@ export const useListStore = create<ListState>()(
       getItemsByRoom: (roomId) => {
         return get().savedItems.filter((i) => i.roomId === roomId);
       },
+
+      canAddRoom: () => {
+        const { isAuthenticated, subscription } = useAuthStore.getState();
+
+        // Must be authenticated to create rooms
+        if (!isAuthenticated) return false;
+
+        // Premium users can add unlimited rooms
+        if (subscription === 'premium') return true;
+
+        // Free users limited to FREE_ROOM_LIMIT rooms
+        return get().rooms.length < FREE_ROOM_LIMIT;
+      },
+
+      getRoomLimit: () => {
+        const { subscription } = useAuthStore.getState();
+        return subscription === 'premium' ? Infinity : FREE_ROOM_LIMIT;
+      },
+
+      clearAll: () => set({ rooms: [], savedItems: [] }),
     }),
     {
       name: 'list-storage',
