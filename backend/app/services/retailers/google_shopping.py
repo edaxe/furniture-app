@@ -34,10 +34,13 @@ class GoogleShoppingRetailer(RetailerBase):
         if not self.is_available():
             return []
 
-        # Build search query
+        # Build search query for API (includes "buy" for better shopping results)
         search_query = f"{query} buy"
         if category:
             search_query = f"{category} {query} buy"
+
+        # Use original description for similarity (without search keywords)
+        similarity_query = query if query else category
 
         try:
             async with httpx.AsyncClient() as client:
@@ -53,7 +56,7 @@ class GoogleShoppingRetailer(RetailerBase):
                 response.raise_for_status()
                 data = response.json()
 
-            return self._parse_results(data, limit, search_query=search_query)
+            return self._parse_results(data, limit, similarity_query=similarity_query)
         except Exception as e:
             print(f"Google Shopping search failed: {e}")
             return []
@@ -83,7 +86,8 @@ class GoogleShoppingRetailer(RetailerBase):
                 response.raise_for_status()
                 data = response.json()
 
-            return self._parse_results(data, limit, is_exact=True, search_query=query)
+            # Use original product name for similarity (without "buy")
+            return self._parse_results(data, limit, is_exact=True, similarity_query=product_name)
         except Exception as e:
             print(f"Google Shopping exact search failed: {e}")
             return []
@@ -93,7 +97,7 @@ class GoogleShoppingRetailer(RetailerBase):
         data: dict,
         limit: int,
         is_exact: bool = False,
-        search_query: str = "",
+        similarity_query: str = "",
     ) -> list[ProductMatch]:
         """Parse Serper API response into ProductMatch objects with calculated similarity."""
         shopping_results = data.get("shopping", [])
@@ -105,9 +109,9 @@ class GoogleShoppingRetailer(RetailerBase):
             price = self._parse_price(item.get("price", "0"))
             product_name = item.get("title", "Unknown Product")
 
-            # Calculate actual similarity based on query match
+            # Calculate similarity between furniture description and product name
             similarity = calculate_similarity(
-                search_query, product_name, is_exact_search=is_exact
+                similarity_query, product_name, is_exact_search=is_exact
             )
 
             product = ProductMatch(
