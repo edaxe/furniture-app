@@ -1,7 +1,7 @@
 import hashlib
 from typing import Optional
 import httpx
-from .base import RetailerBase
+from .base import RetailerBase, calculate_similarity
 from ...models.product import ProductMatch
 from ...config import get_settings
 
@@ -53,7 +53,7 @@ class GoogleShoppingRetailer(RetailerBase):
                 response.raise_for_status()
                 data = response.json()
 
-            return self._parse_results(data, limit)
+            return self._parse_results(data, limit, search_query=search_query)
         except Exception as e:
             print(f"Google Shopping search failed: {e}")
             return []
@@ -83,15 +83,19 @@ class GoogleShoppingRetailer(RetailerBase):
                 response.raise_for_status()
                 data = response.json()
 
-            return self._parse_results(data, limit, is_exact=True)
+            return self._parse_results(data, limit, is_exact=True, search_query=query)
         except Exception as e:
             print(f"Google Shopping exact search failed: {e}")
             return []
 
     def _parse_results(
-        self, data: dict, limit: int, is_exact: bool = False
+        self,
+        data: dict,
+        limit: int,
+        is_exact: bool = False,
+        search_query: str = "",
     ) -> list[ProductMatch]:
-        """Parse Serper API response into ProductMatch objects."""
+        """Parse Serper API response into ProductMatch objects with calculated similarity."""
         shopping_results = data.get("shopping", [])
         products = []
 
@@ -99,16 +103,22 @@ class GoogleShoppingRetailer(RetailerBase):
             link = item.get("link", "")
             product_id = hashlib.md5(link.encode()).hexdigest()[:12]
             price = self._parse_price(item.get("price", "0"))
+            product_name = item.get("title", "Unknown Product")
+
+            # Calculate actual similarity based on query match
+            similarity = calculate_similarity(
+                search_query, product_name, is_exact_search=is_exact
+            )
 
             product = ProductMatch(
                 id=product_id,
-                name=item.get("title", "Unknown Product"),
+                name=product_name,
                 price=price,
                 currency="USD",
                 imageUrl=item.get("imageUrl", ""),
                 productUrl=link,
                 retailer=item.get("source", "Unknown"),
-                similarity=0.95 if is_exact else 0.85,
+                similarity=similarity,
             )
             products.append(product)
 

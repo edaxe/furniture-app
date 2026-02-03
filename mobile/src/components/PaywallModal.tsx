@@ -99,6 +99,7 @@ export default function PaywallModal({
           styles.featureValue,
           isPremium && styles.featureValuePremium,
         ]}
+        numberOfLines={1}
       >
         {value}
       </Text>
@@ -143,8 +144,8 @@ export default function PaywallModal({
           <View style={styles.comparisonTable}>
             <View style={styles.tableHeader}>
               <Text style={styles.tableHeaderCell}>Feature</Text>
-              <Text style={[styles.tableHeaderCell, styles.tableCellCenter]}>Free</Text>
-              <Text style={[styles.tableHeaderCell, styles.tableCellCenter, styles.premiumHeader]}>
+              <Text style={styles.tableHeaderCellValue}>Free</Text>
+              <Text style={[styles.tableHeaderCellValue, styles.premiumHeader]}>
                 Premium
               </Text>
             </View>
@@ -284,10 +285,16 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     flex: 1,
   },
+  tableHeaderCellValue: {
+    ...typography.overline,
+    color: colors.text.secondary,
+    width: 80,
+    textAlign: 'center',
+  },
   tableCellCenter: {
     alignItems: 'center',
     justifyContent: 'center',
-    width: 70,
+    width: 80,
   },
   premiumHeader: {
     color: colors.accent[500],
@@ -299,6 +306,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing[4],
     borderBottomWidth: 1,
     borderBottomColor: colors.border.light,
+    minHeight: 52,
   },
   tableRowLast: {
     borderBottomWidth: 0,
@@ -311,10 +319,12 @@ const styles = StyleSheet.create({
   featureValue: {
     ...typography.labelSmall,
     color: colors.text.secondary,
+    textAlign: 'center',
   },
   featureValuePremium: {
     color: colors.success[600],
     fontFamily: fontFamily.semiBold,
+    textAlign: 'center',
   },
   premiumCell: {
     backgroundColor: colors.accent[50],
@@ -322,6 +332,7 @@ const styles = StyleSheet.create({
     paddingRight: spacing[4],
     marginVertical: -spacing[3],
     paddingVertical: spacing[3],
+    width: 90,
   },
   footer: {
     padding: spacing[5],

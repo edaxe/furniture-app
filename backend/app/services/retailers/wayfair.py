@@ -1,6 +1,6 @@
 import hashlib
 from typing import Optional
-from .base import RetailerBase
+from .base import RetailerBase, calculate_similarity
 from ...models.product import ProductMatch
 from ...config import get_settings
 
@@ -86,7 +86,12 @@ class WayfairRetailer(RetailerBase):
         affiliate_id = self.settings.wayfair_affiliate_id
         return f"https://www.shareasale.com/r.cfm?b=&u={affiliate_id}&m=&urllink={url}"
 
-    def _parse_results(self, data: dict) -> list[ProductMatch]:
+    def _parse_results(
+        self,
+        data: dict,
+        search_query: str = "",
+        is_exact: bool = False,
+    ) -> list[ProductMatch]:
         """
         Parse Wayfair API response into ProductMatch objects.
 
@@ -95,15 +100,24 @@ class WayfairRetailer(RetailerBase):
         products = []
         for item in data.get("products", []):
             product_url = self.tag_affiliate_link(item.get("url", ""))
+            product_name = item.get("name", "Unknown")
+
+            # Calculate actual similarity based on query match
+            # Partner retailers get a small bonus (0.03) added to their score
+            base_similarity = calculate_similarity(
+                search_query, product_name, is_exact_search=is_exact
+            )
+            similarity = min(0.98, base_similarity + 0.03)
+
             product = ProductMatch(
                 id=hashlib.md5(product_url.encode()).hexdigest()[:12],
-                name=item.get("name", "Unknown"),
+                name=product_name,
                 price=float(item.get("price", 0)),
                 currency="USD",
                 imageUrl=item.get("image_url", ""),
                 productUrl=product_url,
                 retailer=self.name,
-                similarity=0.92,  # Partner matches get higher base similarity
+                similarity=similarity,
             )
             products.append(product)
         return products

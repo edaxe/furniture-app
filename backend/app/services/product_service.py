@@ -6,7 +6,7 @@ from ..models.product import ProductMatch
 from ..data.mock_products import MOCK_PRODUCTS
 from ..config import get_settings
 from .retailers import WayfairRetailer, GoogleShoppingRetailer
-from .retailers.base import RetailerBase
+from .retailers.base import RetailerBase, calculate_similarity
 
 
 class ProductService:
@@ -44,7 +44,8 @@ class ProductService:
             limit = self.settings.default_product_limit
 
         if self.settings.use_mock_products:
-            return self._get_mock_matches(category, limit)
+            query = description if description else f"{category} furniture"
+            return self._get_mock_matches(category, limit, query)
 
         # Build search query
         query = description if description else f"{category} furniture"
@@ -57,7 +58,7 @@ class ProductService:
         )
 
         if not results:
-            return self._get_mock_matches(category, limit)
+            return self._get_mock_matches(category, limit, query)
 
         return results
 
@@ -79,12 +80,13 @@ class ProductService:
             limit = self.settings.default_product_limit
 
         if self.settings.use_mock_products:
+            similar_query = description if description else f"{category} furniture"
             if identified_product:
                 return (
                     self._get_mock_exact(identified_product, limit),
-                    self._get_mock_matches(category, limit),
+                    self._get_mock_matches(category, limit, similar_query),
                 )
-            return [], self._get_mock_matches(category, limit)
+            return [], self._get_mock_matches(category, limit, similar_query)
 
         # Build similar search query (without brand/model)
         similar_query = description if description else f"{category} furniture"
@@ -216,22 +218,27 @@ class ProductService:
         variants = ["", " - New", " - Refurbished", " - Open Box", " - Floor Model"]
 
         for i in range(min(limit, len(variants))):
+            product_name = f"{identified_product}{variants[i]}"
+            # Calculate similarity - exact matches should be very high
+            similarity = calculate_similarity(
+                identified_product, product_name, is_exact_search=True
+            )
             mock_exact.append(
                 ProductMatch(
                     id=hashlib.md5(f"{identified_product}-exact-{i}".encode()).hexdigest()[:12],
-                    name=f"{identified_product}{variants[i]}",
+                    name=product_name,
                     price=round(random.uniform(200, 1500), 2),
                     currency="USD",
                     imageUrl="https://via.placeholder.com/150",
                     productUrl=f"https://example.com/product/{i}",
                     retailer=retailers[i % len(retailers)],
-                    similarity=round(random.uniform(0.92, 0.99), 2),
+                    similarity=similarity,
                 )
             )
         return mock_exact
 
     def _get_mock_matches(
-        self, category: str, limit: int
+        self, category: str, limit: int, search_query: str = ""
     ) -> list[ProductMatch]:
         """Get mock product matches from our sample data."""
         category_lower = category.lower()
@@ -260,6 +267,9 @@ class ProductService:
             matching_products, min(limit, len(matching_products))
         )
 
+        # Use search query for similarity calculation, fallback to category
+        query_for_similarity = search_query if search_query else f"{category} furniture"
+
         return [
             ProductMatch(
                 id=p["id"],
@@ -269,7 +279,7 @@ class ProductService:
                 imageUrl=p["imageUrl"],
                 productUrl=p["productUrl"],
                 retailer=p["retailer"],
-                similarity=random.uniform(0.75, 0.95),
+                similarity=calculate_similarity(query_for_similarity, p["name"]),
             )
             for p in selected
         ]
