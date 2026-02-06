@@ -8,9 +8,8 @@ import type { User } from '../store/authStore';
 // Complete the OAuth session
 WebBrowser.maybeCompleteAuthSession();
 
-// Google OAuth configuration
-const GOOGLE_CLIENT_ID = '449600456921-39rs3njkjl2hsjb8ltk81hq8nuso0nbv.apps.googleusercontent.com';
-const GOOGLE_ANDROID_CLIENT_ID = '449600456921-39rs3njkjl2hsjb8ltk81hq8nuso0nbv.apps.googleusercontent.com';
+// Google OAuth configuration (Web client for expo-auth-session)
+const GOOGLE_CLIENT_ID = '449600456921-u1ndq80oo4varmbdoaht3e3usijj2t2o.apps.googleusercontent.com';
 
 const googleDiscovery = {
   authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
@@ -24,11 +23,7 @@ export async function signInWithGoogle(): Promise<User | null> {
       scheme: 'furnishsnap',
     });
 
-    const clientId = Platform.select({
-      ios: GOOGLE_CLIENT_ID,
-      android: GOOGLE_ANDROID_CLIENT_ID,
-      default: GOOGLE_CLIENT_ID,
-    });
+    const clientId = GOOGLE_CLIENT_ID;
 
     const request = new AuthSession.AuthRequest({
       clientId,
