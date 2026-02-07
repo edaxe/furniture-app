@@ -19,12 +19,18 @@ export async function signInWithGoogle(): Promise<User | null> {
     const clientId = Platform.OS === 'ios' ? GOOGLE_IOS_CLIENT_ID : GOOGLE_WEB_CLIENT_ID;
     const redirectUri = GOOGLE_IOS_REDIRECT_URI;
 
-    // Build the Google OAuth URL manually
+    // Generate code verifier and challenge for PKCE
+    const codeVerifier = generateCodeVerifier();
+    const codeChallenge = await generateCodeChallenge(codeVerifier);
+
+    // Build the Google OAuth URL with authorization code flow + PKCE
     const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
     authUrl.searchParams.set('client_id', clientId);
     authUrl.searchParams.set('redirect_uri', redirectUri);
-    authUrl.searchParams.set('response_type', 'token');
+    authUrl.searchParams.set('response_type', 'code');
     authUrl.searchParams.set('scope', 'openid profile email');
+    authUrl.searchParams.set('code_challenge', codeChallenge);
+    authUrl.searchParams.set('code_challenge_method', 'S256');
 
     console.log('Google OAuth URL:', authUrl.toString());
 
@@ -37,14 +43,34 @@ export async function signInWithGoogle(): Promise<User | null> {
     console.log('Auth result:', result);
 
     if (result.type === 'success' && result.url) {
-      // Parse the access token from the URL fragment
+      // Parse the authorization code from the URL
       const url = new URL(result.url);
-      const fragment = url.hash.substring(1); // Remove the # prefix
-      const params = new URLSearchParams(fragment);
-      const accessToken = params.get('access_token');
+      const code = url.searchParams.get('code');
 
-      if (!accessToken) {
-        throw new Error('No access token in response');
+      if (!code) {
+        throw new Error('No authorization code in response');
+      }
+
+      // Exchange the code for tokens
+      const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          client_id: clientId,
+          code: code,
+          code_verifier: codeVerifier,
+          grant_type: 'authorization_code',
+          redirect_uri: redirectUri,
+        }).toString(),
+      });
+
+      const tokens = await tokenResponse.json();
+
+      if (!tokens.access_token) {
+        console.error('Token exchange failed:', tokens);
+        throw new Error('Failed to exchange code for tokens');
       }
 
       // Fetch user info with the access token
@@ -52,7 +78,7 @@ export async function signInWithGoogle(): Promise<User | null> {
         'https://www.googleapis.com/oauth2/v2/userinfo',
         {
           headers: {
-            Authorization: `Bearer ${accessToken}`,
+            Authorization: `Bearer ${tokens.access_token}`,
           },
         }
       );
@@ -73,6 +99,34 @@ export async function signInWithGoogle(): Promise<User | null> {
     console.error('Google sign-in error:', error);
     throw error;
   }
+}
+
+// PKCE helper functions
+function generateCodeVerifier(): string {
+  const array = new Uint8Array(32);
+  for (let i = 0; i < array.length; i++) {
+    array[i] = Math.floor(Math.random() * 256);
+  }
+  return base64UrlEncode(array);
+}
+
+async function generateCodeChallenge(verifier: string): Promise<string> {
+  const hash = await Crypto.digestStringAsync(
+    Crypto.CryptoDigestAlgorithm.SHA256,
+    verifier,
+    { encoding: Crypto.CryptoEncoding.BASE64 }
+  );
+  // Convert base64 to base64url
+  return hash.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function base64UrlEncode(buffer: Uint8Array): string {
+  let binary = '';
+  for (let i = 0; i < buffer.length; i++) {
+    binary += String.fromCharCode(buffer[i]);
+  }
+  const base64 = btoa(binary);
+  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
 export async function signInWithApple(): Promise<User | null> {
