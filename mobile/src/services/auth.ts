@@ -1,12 +1,10 @@
 import * as AppleAuthentication from 'expo-apple-authentication';
-import * as AuthSession from 'expo-auth-session';
-import * as Google from 'expo-auth-session/providers/google';
 import * as Crypto from 'expo-crypto';
 import * as WebBrowser from 'expo-web-browser';
-import { Platform } from 'react-native';
+import { Platform, Linking } from 'react-native';
 import type { User } from '../store/authStore';
 
-// Complete the OAuth session
+// Complete any pending auth sessions
 WebBrowser.maybeCompleteAuthSession();
 
 // Google OAuth client IDs
@@ -14,37 +12,47 @@ const GOOGLE_WEB_CLIENT_ID = '449600456921-u1ndq80oo4varmbdoaht3e3usijj2t2o.apps
 const GOOGLE_IOS_CLIENT_ID = '449600456921-39rs3njkjl2hsjb8ltk81hq8nuso0nbv.apps.googleusercontent.com';
 
 // Reversed client ID for iOS redirect (must match Info.plist CFBundleURLSchemes)
-const GOOGLE_IOS_REDIRECT_SCHEME = 'com.googleusercontent.apps.449600456921-39rs3njkjl2hsjb8ltk81hq8nuso0nbv';
+const GOOGLE_IOS_REDIRECT_URI = 'com.googleusercontent.apps.449600456921-39rs3njkjl2hsjb8ltk81hq8nuso0nbv:/oauth';
 
 export async function signInWithGoogle(): Promise<User | null> {
   try {
-    // For iOS, use the reversed client ID as the redirect scheme
-    // For other platforms, use the app's custom scheme
-    const redirectUri = Platform.OS === 'ios'
-      ? `${GOOGLE_IOS_REDIRECT_SCHEME}:/oauth`
-      : AuthSession.makeRedirectUri({ scheme: 'furnishsnap', path: 'oauth' });
+    const clientId = Platform.OS === 'ios' ? GOOGLE_IOS_CLIENT_ID : GOOGLE_WEB_CLIENT_ID;
+    const redirectUri = GOOGLE_IOS_REDIRECT_URI;
 
-    console.log('Google OAuth redirect URI:', redirectUri);
+    // Build the Google OAuth URL manually
+    const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+    authUrl.searchParams.set('client_id', clientId);
+    authUrl.searchParams.set('redirect_uri', redirectUri);
+    authUrl.searchParams.set('response_type', 'token');
+    authUrl.searchParams.set('scope', 'openid profile email');
 
-    // Use the Google discovery document
-    const discovery = Google.discovery;
+    console.log('Google OAuth URL:', authUrl.toString());
 
-    const request = new AuthSession.AuthRequest({
-      clientId: Platform.OS === 'ios' ? GOOGLE_IOS_CLIENT_ID : GOOGLE_WEB_CLIENT_ID,
-      scopes: ['openid', 'profile', 'email'],
-      redirectUri,
-      responseType: AuthSession.ResponseType.Token,
-    });
+    // Open the auth URL in a browser
+    const result = await WebBrowser.openAuthSessionAsync(
+      authUrl.toString(),
+      redirectUri
+    );
 
-    const result = await request.promptAsync(discovery);
+    console.log('Auth result:', result);
 
-    if (result.type === 'success' && result.authentication) {
+    if (result.type === 'success' && result.url) {
+      // Parse the access token from the URL fragment
+      const url = new URL(result.url);
+      const fragment = url.hash.substring(1); // Remove the # prefix
+      const params = new URLSearchParams(fragment);
+      const accessToken = params.get('access_token');
+
+      if (!accessToken) {
+        throw new Error('No access token in response');
+      }
+
       // Fetch user info with the access token
       const userInfoResponse = await fetch(
         'https://www.googleapis.com/oauth2/v2/userinfo',
         {
           headers: {
-            Authorization: `Bearer ${result.authentication.accessToken}`,
+            Authorization: `Bearer ${accessToken}`,
           },
         }
       );
