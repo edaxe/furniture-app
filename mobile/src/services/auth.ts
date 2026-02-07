@@ -13,12 +13,16 @@ WebBrowser.maybeCompleteAuthSession();
 const GOOGLE_WEB_CLIENT_ID = '449600456921-u1ndq80oo4varmbdoaht3e3usijj2t2o.apps.googleusercontent.com';
 const GOOGLE_IOS_CLIENT_ID = '449600456921-39rs3njkjl2hsjb8ltk81hq8nuso0nbv.apps.googleusercontent.com';
 
+// Reversed client ID for iOS redirect (must match Info.plist CFBundleURLSchemes)
+const GOOGLE_IOS_REDIRECT_SCHEME = 'com.googleusercontent.apps.449600456921-39rs3njkjl2hsjb8ltk81hq8nuso0nbv';
+
 export async function signInWithGoogle(): Promise<User | null> {
   try {
-    const redirectUri = AuthSession.makeRedirectUri({
-      scheme: 'furnishsnap',
-      path: 'oauth',
-    });
+    // For iOS, use the reversed client ID as the redirect scheme
+    // For other platforms, use the app's custom scheme
+    const redirectUri = Platform.OS === 'ios'
+      ? `${GOOGLE_IOS_REDIRECT_SCHEME}:/oauth`
+      : AuthSession.makeRedirectUri({ scheme: 'furnishsnap', path: 'oauth' });
 
     console.log('Google OAuth redirect URI:', redirectUri);
 
