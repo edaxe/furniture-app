@@ -1,5 +1,6 @@
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as AuthSession from 'expo-auth-session';
+import * as Google from 'expo-auth-session/providers/google';
 import * as Crypto from 'expo-crypto';
 import * as WebBrowser from 'expo-web-browser';
 import { Platform } from 'react-native';
@@ -8,34 +9,30 @@ import type { User } from '../store/authStore';
 // Complete the OAuth session
 WebBrowser.maybeCompleteAuthSession();
 
-// Google OAuth configuration (Web client for expo-auth-session)
-const GOOGLE_CLIENT_ID = '449600456921-u1ndq80oo4varmbdoaht3e3usijj2t2o.apps.googleusercontent.com';
-
-const googleDiscovery = {
-  authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
-  tokenEndpoint: 'https://oauth2.googleapis.com/token',
-  revocationEndpoint: 'https://oauth2.googleapis.com/revoke',
-};
+// Google OAuth client IDs
+const GOOGLE_WEB_CLIENT_ID = '449600456921-u1ndq80oo4varmbdoaht3e3usijj2t2o.apps.googleusercontent.com';
+const GOOGLE_IOS_CLIENT_ID = '449600456921-39rs3njkjl2hsjb8ltk81hq8nuso0nbv.apps.googleusercontent.com';
 
 export async function signInWithGoogle(): Promise<User | null> {
   try {
-    // Use Expo's auth proxy for consistent redirect URI
     const redirectUri = AuthSession.makeRedirectUri({
       scheme: 'furnishsnap',
-      useProxy: true,
+      path: 'oauth',
     });
 
     console.log('Google OAuth redirect URI:', redirectUri);
 
-    const clientId = GOOGLE_CLIENT_ID;
+    // Use the Google discovery document
+    const discovery = Google.discovery;
 
     const request = new AuthSession.AuthRequest({
-      clientId,
+      clientId: Platform.OS === 'ios' ? GOOGLE_IOS_CLIENT_ID : GOOGLE_WEB_CLIENT_ID,
       scopes: ['openid', 'profile', 'email'],
       redirectUri,
+      responseType: AuthSession.ResponseType.Token,
     });
 
-    const result = await request.promptAsync(googleDiscovery, { useProxy: true });
+    const result = await request.promptAsync(discovery);
 
     if (result.type === 'success' && result.authentication) {
       // Fetch user info with the access token
