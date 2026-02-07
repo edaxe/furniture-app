@@ -19,9 +19,13 @@ const googleDiscovery = {
 
 export async function signInWithGoogle(): Promise<User | null> {
   try {
+    // Use Expo's auth proxy for consistent redirect URI
     const redirectUri = AuthSession.makeRedirectUri({
       scheme: 'furnishsnap',
+      useProxy: true,
     });
+
+    console.log('Google OAuth redirect URI:', redirectUri);
 
     const clientId = GOOGLE_CLIENT_ID;
 
@@ -31,7 +35,7 @@ export async function signInWithGoogle(): Promise<User | null> {
       redirectUri,
     });
 
-    const result = await request.promptAsync(googleDiscovery);
+    const result = await request.promptAsync(googleDiscovery, { useProxy: true });
 
     if (result.type === 'success' && result.authentication) {
       // Fetch user info with the access token
