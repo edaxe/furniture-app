@@ -8,47 +8,38 @@ import {
   Animated,
   TouchableOpacity,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useOnboardingStore } from '../store/onboardingStore';
 import { Button } from '../components/ui';
-import { colors, typography, borderRadius, spacing } from '../theme';
+import { colors, typography, fontFamily, borderRadius, spacing } from '../theme';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface OnboardingSlide {
   id: string;
   icon: keyof typeof Ionicons.glyphMap;
   title: string;
-  subtitle: string;
   description: string;
-  gradient: [string, string];
 }
 
 const slides: OnboardingSlide[] = [
   {
     id: '1',
     icon: 'scan-outline',
-    title: 'Scan',
-    subtitle: 'Any Room',
+    title: 'Scan Any Room',
     description: 'Point your camera at furniture and let AI identify each piece instantly.',
-    gradient: ['#F8F6F4', '#EDE8E3'],
   },
   {
     id: '2',
     icon: 'sparkles-outline',
-    title: 'Discover',
-    subtitle: 'Perfect Matches',
+    title: 'Discover Perfect Matches',
     description: 'Get curated product recommendations from top retailers worldwide.',
-    gradient: ['#F4F6F8', '#E3E8ED'],
   },
   {
     id: '3',
     icon: 'bookmark-outline',
-    title: 'Save',
-    subtitle: '& Organize',
+    title: 'Save & Organize',
     description: 'Create rooms and build your dream space one piece at a time.',
-    gradient: ['#F6F8F4', '#E8EDE3'],
   },
 ];
 
@@ -77,33 +68,32 @@ export default function OnboardingScreen() {
       (index + 1) * SCREEN_WIDTH,
     ];
 
-    const scale = scrollX.interpolate({
+    const opacity = scrollX.interpolate({
       inputRange,
-      outputRange: [0.8, 1, 0.8],
+      outputRange: [0, 1, 0],
       extrapolate: 'clamp',
     });
 
-    const opacity = scrollX.interpolate({
+    const scale = scrollX.interpolate({
       inputRange,
-      outputRange: [0.4, 1, 0.4],
+      outputRange: [0.9, 1, 0.9],
       extrapolate: 'clamp',
     });
 
     return (
       <View style={styles.slide}>
-        <LinearGradient colors={item.gradient} style={styles.gradientBg}>
-          <Animated.View style={[styles.iconWrapper, { transform: [{ scale }], opacity }]}>
-            <View style={styles.iconCircle}>
-              <Ionicons name={item.icon} size={48} color={colors.accent[500]} />
-            </View>
-          </Animated.View>
-        </LinearGradient>
+        <Animated.View style={[styles.slideContent, { opacity }]}>
+          <View style={styles.iconArea}>
+            <Animated.View style={{ transform: [{ scale }] }}>
+              <Ionicons name={item.icon} size={64} color={colors.accent[500]} />
+            </Animated.View>
+          </View>
 
-        <View style={styles.content}>
-          <Text style={styles.title}>{item.title}</Text>
-          <Text style={styles.subtitle}>{item.subtitle}</Text>
-          <Text style={styles.description}>{item.description}</Text>
-        </View>
+          <View style={styles.textArea}>
+            <Text style={styles.title}>{item.title}</Text>
+            <Text style={styles.description}>{item.description}</Text>
+          </View>
+        </Animated.View>
       </View>
     );
   };
@@ -117,22 +107,16 @@ export default function OnboardingScreen() {
           (index + 1) * SCREEN_WIDTH,
         ];
 
-        const width = scrollX.interpolate({
+        const opacity = scrollX.interpolate({
           inputRange,
-          outputRange: [8, 24, 8],
-          extrapolate: 'clamp',
-        });
-
-        const bgColor = scrollX.interpolate({
-          inputRange,
-          outputRange: [colors.neutral[200], colors.text.primary, colors.neutral[200]],
+          outputRange: [0.3, 1, 0.3],
           extrapolate: 'clamp',
         });
 
         return (
           <Animated.View
             key={index}
-            style={[styles.dot, { width, backgroundColor: bgColor }]}
+            style={[styles.dot, { opacity }]}
           />
         );
       })}
@@ -186,7 +170,7 @@ export default function OnboardingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.primary,
+    backgroundColor: '#FFFFFF',
   },
   skipContainer: {
     position: 'absolute',
@@ -196,67 +180,54 @@ const styles = StyleSheet.create({
     padding: spacing[2],
   },
   skipText: {
-    ...typography.label,
-    color: colors.text.secondary,
+    ...typography.caption,
+    color: colors.neutral[400],
   },
   slide: {
     width: SCREEN_WIDTH,
     flex: 1,
-  },
-  gradientBg: {
-    height: SCREEN_HEIGHT * 0.5,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  iconWrapper: {
-    alignItems: 'center',
     justifyContent: 'center',
   },
-  iconCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: colors.background.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: colors.text.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.1,
-    shadowRadius: 24,
-    elevation: 8,
-  },
-  content: {
+  slideContent: {
     flex: 1,
-    paddingHorizontal: spacing[6],
-    paddingTop: spacing[8],
+    justifyContent: 'center',
+    paddingHorizontal: spacing[8],
+  },
+  iconArea: {
+    alignItems: 'center',
+    marginBottom: spacing[10],
+  },
+  textArea: {
+    alignItems: 'center',
   },
   title: {
-    ...typography.displayMedium,
+    ...typography.displayLarge,
     color: colors.text.primary,
-  },
-  subtitle: {
-    ...typography.displayMedium,
-    color: colors.accent[500],
+    textAlign: 'center',
     marginBottom: spacing[4],
   },
   description: {
     ...typography.bodyLarge,
     color: colors.text.secondary,
+    textAlign: 'center',
     lineHeight: 28,
+    paddingHorizontal: spacing[4],
   },
   pagination: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     gap: spacing[2],
-    marginBottom: spacing[6],
+    marginBottom: spacing[8],
   },
   dot: {
-    height: 8,
-    borderRadius: 4,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.text.primary,
   },
   footer: {
     paddingHorizontal: spacing[6],
-    paddingBottom: 40,
+    paddingBottom: 48,
   },
 });

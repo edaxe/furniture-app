@@ -3,6 +3,11 @@ import { NavigatorScreenParams } from '@react-navigation/native';
 export type RootTabParamList = {
   Scan: NavigatorScreenParams<ScanStackParamList>;
   Lists: NavigatorScreenParams<ListsStackParamList>;
+  Profile: NavigatorScreenParams<ProfileStackParamList>;
+};
+
+export type ProfileStackParamList = {
+  ProfileHome: undefined;
 };
 
 export type ScanStackParamList = {

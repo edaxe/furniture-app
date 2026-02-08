@@ -11,6 +11,7 @@ import ResultsScreen from '../screens/ResultsScreen';
 import DetectionFailedScreen from '../screens/DetectionFailedScreen';
 import ListsScreen from '../screens/ListsScreen';
 import RoomDetailScreen from '../screens/RoomDetailScreen';
+import ProfileScreen from '../screens/ProfileScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
 import { useOnboardingStore } from '../store/onboardingStore';
 import { colors, typography, fontFamily, spacing, borderRadius } from '../theme';
@@ -19,11 +20,13 @@ import {
   RootTabParamList,
   ScanStackParamList,
   ListsStackParamList,
+  ProfileStackParamList,
 } from './types';
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 const ScanStack = createNativeStackNavigator<ScanStackParamList>();
 const ListsStack = createNativeStackNavigator<ListsStackParamList>();
+const ProfileStack = createNativeStackNavigator<ProfileStackParamList>();
 
 const screenOptions = {
   headerStyle: {
@@ -96,6 +99,20 @@ function ListsStackNavigator() {
   );
 }
 
+function ProfileStackNavigator() {
+  return (
+    <ProfileStack.Navigator screenOptions={screenOptions}>
+      <ProfileStack.Screen
+        name="ProfileHome"
+        component={ProfileScreen}
+        options={{
+          headerShown: false,
+        }}
+      />
+    </ProfileStack.Navigator>
+  );
+}
+
 function MainAppNavigator() {
   return (
     <Tab.Navigator
@@ -108,6 +125,8 @@ function MainAppNavigator() {
             iconName = focused ? 'scan' : 'scan-outline';
           } else if (route.name === 'Lists') {
             iconName = focused ? 'bookmark' : 'bookmark-outline';
+          } else if (route.name === 'Profile') {
+            iconName = focused ? 'person' : 'person-outline';
           } else {
             iconName = 'help-outline';
           }
@@ -166,6 +185,13 @@ function MainAppNavigator() {
         component={ListsStackNavigator}
         options={{
           tabBarLabel: 'Saved',
+        }}
+      />
+      <Tab.Screen
+        name="Profile"
+        component={ProfileStackNavigator}
+        options={{
+          tabBarLabel: 'Profile',
         }}
       />
     </Tab.Navigator>

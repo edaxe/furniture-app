@@ -5,9 +5,9 @@ import {
   View,
   Text,
   Image,
-  Linking,
   Alert,
 } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
 import { Ionicons } from '@expo/vector-icons';
 import { SavedItem } from '../navigation/types';
 import { colors, typography, fontFamily, shadows, borderRadius, spacing } from '../theme';
@@ -27,10 +27,12 @@ export default function SavedItemCard({ item, onDelete }: SavedItemCardProps) {
     }).format(price);
   };
 
-  const handleOpenLink = () => {
-    Linking.openURL(selectedProduct.productUrl).catch(() => {
+  const handleOpenLink = async () => {
+    try {
+      await WebBrowser.openBrowserAsync(selectedProduct.productUrl);
+    } catch {
       Alert.alert('Error', 'Could not open product link');
-    });
+    }
   };
 
   return (
