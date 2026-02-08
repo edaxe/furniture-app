@@ -20,7 +20,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.furnishsnap.app",
-      "buildNumber": "10",
+      "buildNumber": "11",
       "usesAppleSignIn": true,
       "infoPlist": {
         "NSCameraUsageDescription": "RoomRadar needs camera access to scan and identify furniture in your photos.",
