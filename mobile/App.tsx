@@ -9,6 +9,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import AppNavigator from './src/navigation/AppNavigator';
 import ErrorBoundary from './src/components/ErrorBoundary';
 import { useUserStore } from './src/store/userStore';
+import { setupIAP, checkSubscriptionStatus, teardownIAP } from './src/services/iap';
 import { colors } from './src/theme';
 
 // Keep splash screen visible while loading fonts
@@ -70,6 +71,15 @@ export default function App() {
 
   useEffect(() => {
     resetScansIfNewMonth();
+  }, []);
+
+  useEffect(() => {
+    setupIAP().then(() => {
+      checkSubscriptionStatus();
+    });
+    return () => {
+      teardownIAP();
+    };
   }, []);
 
   const onLayoutRootView = useCallback(async () => {

@@ -20,11 +20,11 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.furnishsnap.app",
-      "buildNumber": "11",
+      "buildNumber": "12",
       "usesAppleSignIn": true,
       "infoPlist": {
-        "NSCameraUsageDescription": "RoomRadar needs camera access to scan and identify furniture in your photos.",
-        "NSPhotoLibraryUsageDescription": "RoomRadar needs photo library access to select images of furniture to scan.",
+        "NSCameraUsageDescription": "HomeSnap needs camera access to scan and identify furniture in your photos.",
+        "NSPhotoLibraryUsageDescription": "HomeSnap needs photo library access to select images of furniture to scan.",
         "ITSAppUsesNonExemptEncryption": false,
         "CFBundleURLTypes": [
           {
@@ -39,17 +39,18 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow RoomRadar to access your camera to scan furniture."
+          "cameraPermission": "Allow HomeSnap to access your camera to scan furniture."
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow RoomRadar to access your photos to select furniture images."
+          "photosPermission": "Allow HomeSnap to access your photos to select furniture images."
         }
       ],
       "expo-secure-store",
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      "react-native-iap"
     ],
     "extra": {
       "apiUrl": "https://furnishsnap-api-production.up.railway.app",

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Modal,
   View,
@@ -8,9 +8,12 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { type Subscription } from 'react-native-iap';
 import { useAuthStore } from '../store/authStore';
+import { fetchSubscription, purchaseSubscription, restorePurchases } from '../services/iap';
 import { colors, typography, fontFamily, shadows, borderRadius, spacing } from '../theme';
 
 interface PaywallModalProps {
@@ -31,9 +34,6 @@ const features: FeatureItem[] = [
   { name: 'Saved room lists', free: '1', premium: 'Unlimited' },
   { name: 'Furniture detection', free: true, premium: true },
   { name: 'Basic product info', free: true, premium: true },
-  { name: 'Price alerts', free: false, premium: 'Coming soon' },
-  { name: 'Style assistant', free: false, premium: 'Coming soon' },
-  { name: 'Export shopping lists', free: false, premium: 'Coming soon' },
 ];
 
 export default function PaywallModal({
@@ -43,23 +43,28 @@ export default function PaywallModal({
 }: PaywallModalProps) {
   const { setSubscription } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
+  const [product, setProduct] = useState<Subscription | null>(null);
+
+  useEffect(() => {
+    if (visible) {
+      fetchSubscription().then(setProduct);
+    }
+  }, [visible]);
+
+  const priceLabel = product && 'localizedPrice' in product
+    ? product.localizedPrice
+    : '$19.99';
 
   const handleUpgrade = async () => {
     setIsLoading(true);
     try {
-      // TODO: Implement actual in-app purchase
-      // For now, show a placeholder message
-      Alert.alert(
-        'Premium Subscription',
-        'In-app purchases will be available soon. Thank you for your interest in RoomRadar Premium!',
-        [{ text: 'OK' }]
-      );
-      // In production, this would be called after successful purchase:
-      // setSubscription('premium');
-      // onUpgrade?.();
-      // onClose();
-    } catch (error) {
-      Alert.alert('Error', 'Failed to process upgrade. Please try again.');
+      await purchaseSubscription();
+      onUpgrade?.();
+      onClose();
+    } catch (error: any) {
+      if (error?.code !== 'E_USER_CANCELLED') {
+        Alert.alert('Error', 'Failed to process upgrade. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -68,12 +73,14 @@ export default function PaywallModal({
   const handleRestorePurchases = async () => {
     setIsLoading(true);
     try {
-      // TODO: Implement restore purchases
-      Alert.alert(
-        'Restore Purchases',
-        'Purchase restoration will be available when subscriptions are enabled.',
-        [{ text: 'OK' }]
-      );
+      const restored = await restorePurchases();
+      if (restored) {
+        Alert.alert('Restored', 'Your premium subscription has been restored.', [
+          { text: 'OK', onPress: onClose },
+        ]);
+      } else {
+        Alert.alert('No Purchases Found', 'We could not find any previous purchases to restore.');
+      }
     } catch (error) {
       Alert.alert('Error', 'Failed to restore purchases. Please try again.');
     } finally {
@@ -136,7 +143,7 @@ export default function PaywallModal({
           </View>
 
           <View style={styles.pricingCard}>
-            <Text style={styles.price}>$19</Text>
+            <Text style={styles.price}>{priceLabel}</Text>
             <Text style={styles.period}>/month</Text>
             <Text style={styles.pricingNote}>Cancel anytime</Text>
           </View>
@@ -167,6 +174,29 @@ export default function PaywallModal({
                 </View>
               </View>
             ))}
+          </View>
+
+          <Text style={styles.subscriptionDisclosure}>
+            Payment will be charged to your Apple ID account at confirmation of
+            purchase. Subscription automatically renews unless canceled at least
+            24 hours before the end of the current period. Your account will be
+            charged for renewal within 24 hours prior to the end of the current
+            period. You can manage and cancel your subscriptions by going to your
+            account settings on the App Store after purchase.
+          </Text>
+
+          <View style={styles.legalLinks}>
+            <TouchableOpacity
+              onPress={() => Linking.openURL('https://roomradar.app/terms')}
+            >
+              <Text style={styles.legalLinkText}>Terms of Use</Text>
+            </TouchableOpacity>
+            <Text style={styles.legalSeparator}>|</Text>
+            <TouchableOpacity
+              onPress={() => Linking.openURL('https://roomradar.app/privacy')}
+            >
+              <Text style={styles.legalLinkText}>Privacy Policy</Text>
+            </TouchableOpacity>
           </View>
         </ScrollView>
 
@@ -333,6 +363,29 @@ const styles = StyleSheet.create({
     marginVertical: -spacing[3],
     paddingVertical: spacing[3],
     width: 90,
+  },
+  subscriptionDisclosure: {
+    ...typography.caption,
+    color: colors.text.tertiary,
+    textAlign: 'center',
+    marginTop: spacing[5],
+    lineHeight: 18,
+  },
+  legalLinks: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: spacing[3],
+    gap: spacing[2],
+  },
+  legalLinkText: {
+    ...typography.caption,
+    color: colors.accent[500],
+    textDecorationLine: 'underline',
+  },
+  legalSeparator: {
+    ...typography.caption,
+    color: colors.text.tertiary,
   },
   footer: {
     padding: spacing[5],

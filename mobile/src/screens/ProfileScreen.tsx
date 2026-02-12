@@ -128,7 +128,7 @@ export default function ProfileScreen() {
   };
 
   const handleContactSupport = () => {
-    Linking.openURL('mailto:support@roomradar.app').catch(() => {
+    Linking.openURL('mailto:support@homesnap.app').catch(() => {
       Alert.alert('Error', 'Could not open email app.');
     });
   };
@@ -334,7 +334,7 @@ export default function ProfileScreen() {
         </View>
 
         {/* Version */}
-        <Text style={styles.versionText}>RoomRadar v{appVersion}</Text>
+        <Text style={styles.versionText}>HomeSnap v{appVersion}</Text>
       </ScrollView>
 
       {/* Auth Modal */}
