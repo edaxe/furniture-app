@@ -2,6 +2,20 @@ from pydantic import BaseModel, Field
 from typing import Optional
 
 
+class ProductMatchRequest(BaseModel):
+    session_id: str = Field(..., description="Image session ID from detection response")
+    bounding_box: dict = Field(..., description="Bounding box of the furniture item {x, y, width, height}")
+    category: str = Field(..., description="Furniture category")
+    description: Optional[str] = Field(None, description="Furniture description")
+    identified_product: Optional[str] = Field(None, description="Identified product name")
+    color: Optional[str] = Field(None, description="Primary color")
+    material: Optional[str] = Field(None, description="Primary material")
+    style: Optional[str] = Field(None, description="Design style")
+    brand: Optional[str] = Field(None, description="Brand name")
+    model_name: Optional[str] = Field(None, description="Model name")
+    limit: int = Field(default=6, ge=1, le=20, description="Max products to return")
+
+
 class ProductMatch(BaseModel):
     id: str = Field(..., description="Unique product identifier")
     name: str = Field(..., description="Product name")

@@ -1,10 +1,13 @@
 import os
+import io
+import asyncio
 import uuid
 import random
 import base64
 import json
 import tempfile
 from typing import Optional
+from PIL import Image as PILImage
 from ..models.detection import DetectedFurniture, BoundingBox
 from ..config import get_settings
 
@@ -158,25 +161,156 @@ class VisionService:
         """
         Use Gemini for semantic furniture detection.
         Falls back to Cloud Vision, then to mock detection.
+        After first-pass detection, runs crop-and-reanalyze for refinement.
         """
+        detections = []
+
         # Try Gemini first
         if self.settings.gemini_api_key:
             try:
-                return await self._gemini_detect(image_content)
+                detections = await self._gemini_detect(image_content)
             except Exception as e:
                 print(f"Gemini detection failed: {e}")
 
         # Fall back to Cloud Vision
-        try:
-            return await self._cloud_vision_detect(image_content)
-        except Exception as e:
-            print(f"Cloud Vision fallback failed: {e}")
-            return self._mock_detect()
+        if not detections:
+            try:
+                detections = await self._cloud_vision_detect(image_content)
+            except Exception as e:
+                print(f"Cloud Vision fallback failed: {e}")
+                return self._mock_detect()
+
+        # Second pass: crop-and-reanalyze each detection for better details
+        if detections and self.settings.gemini_api_key:
+            try:
+                detections = await self._refine_detections(image_content, detections)
+            except Exception as e:
+                print(f"Crop-and-reanalyze failed, using first-pass results: {e}")
+
+        return detections
+
+    def _crop_image(self, image_bytes: bytes, bbox: BoundingBox, padding: float = 0.05) -> bytes:
+        """Crop an image region defined by a bounding box with padding."""
+        img = PILImage.open(io.BytesIO(image_bytes))
+        w, h = img.size
+
+        # Calculate crop coordinates with padding
+        left = max(0, int((bbox.x - padding) * w))
+        top = max(0, int((bbox.y - padding) * h))
+        right = min(w, int((bbox.x + bbox.width + padding) * w))
+        bottom = min(h, int((bbox.y + bbox.height + padding) * h))
+
+        cropped = img.crop((left, top, right, bottom))
+        buf = io.BytesIO()
+        cropped.save(buf, format="JPEG", quality=90)
+        return buf.getvalue()
+
+    async def _focused_detect(self, cropped_bytes: bytes, label: str) -> dict:
+        """Second-pass Gemini call on a cropped image for detailed identification."""
+        from google import genai
+        from google.genai import types
+
+        client = genai.Client(api_key=self.settings.gemini_api_key)
+
+        focused_schema = types.Schema(
+            type=types.Type.OBJECT,
+            properties={
+                "brand": types.Schema(type=types.Type.STRING, description="Brand name if identifiable, empty string if unknown"),
+                "model_name": types.Schema(type=types.Type.STRING, description="Model name if identifiable, empty string if unknown"),
+                "description": types.Schema(type=types.Type.STRING, description="Detailed description without brand/model"),
+                "color": types.Schema(type=types.Type.STRING, description="Specific color name"),
+                "material": types.Schema(type=types.Type.STRING, description="Specific material"),
+                "style": types.Schema(type=types.Type.STRING, description="Design style"),
+                "estimated_price_range": types.Schema(type=types.Type.STRING, description="Estimated price range"),
+            },
+            required=["brand", "model_name", "description", "color", "material", "style", "estimated_price_range"],
+        )
+
+        response_schema = types.Schema(
+            type=types.Type.OBJECT,
+            properties={"item": types.Schema(type=types.Type.OBJECT, properties=focused_schema.properties, required=focused_schema.required)},
+            required=["item"],
+        )
+
+        prompt = (
+            f"This is a close-up photo of a {label}. Analyze it carefully and provide:\n"
+            "- brand: Identify the brand if possible from design signatures, labels, or distinctive features\n"
+            "- model_name: Identify the specific model if possible\n"
+            "- description: Detailed search-friendly description (NO brand/model names). "
+            "Include silhouette, color, material, upholstery, leg style, hardware, approximate size.\n"
+            "- color: Specific color (e.g. 'navy blue' not 'blue')\n"
+            "- material: Specific material (e.g. 'walnut wood' not 'wood')\n"
+            "- style: Design style (modern, mid-century modern, scandinavian, industrial, etc.)\n"
+            "- estimated_price_range: Estimated retail price\n\n"
+            "Be as specific as possible. If you can't identify brand/model, use empty string."
+        )
+
+        image_part = types.Part.from_bytes(data=cropped_bytes, mime_type="image/jpeg")
+        model_name = self._get_gemini_model()
+
+        response = client.models.generate_content(
+            model=model_name,
+            contents=[image_part, prompt],
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=response_schema,
+            ),
+        )
+
+        result = json.loads(response.text)
+        return result.get("item", {})
+
+    async def _refine_detections(
+        self, image_bytes: bytes, detections: list[DetectedFurniture]
+    ) -> list[DetectedFurniture]:
+        """Crop each detection and run a focused second-pass for better details."""
+
+        async def refine_one(detection: DetectedFurniture) -> DetectedFurniture:
+            try:
+                cropped = self._crop_image(image_bytes, detection.boundingBox)
+                refined = await self._focused_detect(cropped, detection.label)
+
+                # Only overwrite fields where the second pass found better info
+                new_brand = (refined.get("brand", "") or None) or detection.brand
+                new_model = (refined.get("model_name", "") or None) or detection.model_name
+
+                new_identified = detection.identified_product
+                if new_brand and new_model and not detection.identified_product:
+                    new_identified = f"{new_brand} {new_model}"
+                elif new_brand and not detection.identified_product:
+                    new_identified = new_brand
+
+                return DetectedFurniture(
+                    id=detection.id,
+                    label=detection.label,
+                    confidence=detection.confidence,
+                    boundingBox=detection.boundingBox,
+                    description=refined.get("description") or detection.description,
+                    color=refined.get("color") or detection.color,
+                    material=refined.get("material") or detection.material,
+                    style=refined.get("style") or detection.style,
+                    brand=new_brand,
+                    model_name=new_model,
+                    identified_product=new_identified,
+                    estimated_price_range=refined.get("estimated_price_range") or detection.estimated_price_range,
+                )
+            except Exception as e:
+                print(f"Refinement failed for {detection.label}: {e}")
+                return detection
+
+        refined = await asyncio.gather(*[refine_one(d) for d in detections])
+        return list(refined)
+
+    def _get_gemini_model(self) -> str:
+        """Select Gemini model based on configuration."""
+        if self.settings.use_gemini_pro:
+            return self.settings.gemini_pro_model
+        return self.settings.gemini_model
 
     async def _gemini_detect(
         self, image_content: bytes
     ) -> list[DetectedFurniture]:
-        """Use Gemini 2.5 Flash for semantic furniture detection with structured output."""
+        """Use Gemini for semantic furniture detection with structured output."""
         from google import genai
         from google.genai import types
 
@@ -188,31 +322,60 @@ class VisionService:
             properties={
                 "label": types.Schema(
                     type=types.Type.STRING,
-                    description="Furniture type, e.g. 'Office Chair', 'Sofa', 'Coffee Table'",
+                    description=(
+                        "Specific furniture type. Use precise categories: "
+                        "'Sectional Sofa', 'Loveseat', 'Chesterfield Sofa' (not just 'Sofa'); "
+                        "'Dining Chair', 'Office Chair', 'Accent Chair', 'Rocking Chair' (not just 'Chair'); "
+                        "'Coffee Table', 'Dining Table', 'Console Table', 'Side Table' (not just 'Table')"
+                    ),
                 ),
                 "description": types.Schema(
                     type=types.Type.STRING,
-                    description="Detailed description for product search WITHOUT brand or model names, e.g. 'modern black ergonomic mesh office chair with adjustable armrests'",
+                    description=(
+                        "Detailed search-friendly description WITHOUT brand or model names. "
+                        "Include: silhouette shape, color, material, upholstery type, leg style, "
+                        "and distinguishing features. "
+                        "Example: 'mid-century modern walnut wood credenza with sliding doors, "
+                        "tapered legs, and brass hardware, approximately 60 inches wide'"
+                    ),
                 ),
                 "color": types.Schema(
                     type=types.Type.STRING,
-                    description="Primary color of the furniture",
+                    description="Specific color: 'navy blue', 'charcoal gray', 'walnut brown', 'cream white' (not just 'blue' or 'brown')",
                 ),
                 "material": types.Schema(
                     type=types.Type.STRING,
-                    description="Primary material, e.g. 'wood', 'metal', 'fabric', 'leather', 'mesh'",
+                    description=(
+                        "Specific primary material: 'walnut wood', 'white oak', 'top-grain leather', "
+                        "'performance velvet', 'brushed steel', 'marble' (not just 'wood' or 'fabric')"
+                    ),
                 ),
                 "style": types.Schema(
                     type=types.Type.STRING,
-                    description="Design style, e.g. 'modern', 'traditional', 'mid-century', 'industrial'",
+                    description=(
+                        "Design style from this list: modern, mid-century modern, scandinavian, "
+                        "industrial, farmhouse, traditional, transitional, art deco, bohemian, "
+                        "coastal, minimalist, contemporary, rustic, glam"
+                    ),
                 ),
                 "brand": types.Schema(
                     type=types.Type.STRING,
-                    description="Brand name if recognizable, e.g. 'Herman Miller', 'IKEA'. Empty string if unknown.",
+                    description=(
+                        "Brand name if recognizable. Look for design signatures: "
+                        "Herman Miller (ergonomic mesh, Eames shapes), IKEA (flat-pack, minimal Scandi), "
+                        "West Elm (mid-century lines), Restoration Hardware (oversized, weathered), "
+                        "CB2 (clean modern), Pottery Barn (traditional American), "
+                        "Article (modern minimalist), Crate & Barrel (transitional). "
+                        "Empty string if unknown."
+                    ),
                 ),
                 "model_name": types.Schema(
                     type=types.Type.STRING,
-                    description="Model name if recognizable, e.g. 'Aeron Chair', 'Kallax'. Empty string if unknown.",
+                    description="Model name if recognizable, e.g. 'Aeron Chair', 'Kallax', 'Ektorp'. Empty string if unknown.",
+                ),
+                "estimated_price_range": types.Schema(
+                    type=types.Type.STRING,
+                    description="Estimated retail price range, e.g. '$200-$400', '$1000-$2000'",
                 ),
                 "confidence": types.Schema(
                     type=types.Type.NUMBER,
@@ -229,7 +392,7 @@ class VisionService:
                     required=["x", "y", "width", "height"],
                 ),
             },
-            required=["label", "description", "color", "material", "style", "brand", "model_name", "confidence", "bounding_box"],
+            required=["label", "description", "color", "material", "style", "brand", "model_name", "estimated_price_range", "confidence", "bounding_box"],
         )
 
         response_schema = types.Schema(
@@ -244,24 +407,31 @@ class VisionService:
         )
 
         prompt = (
-            "Analyze this image and identify ALL furniture items visible. "
-            "For each piece of furniture, provide:\n"
-            "- label: The furniture type (e.g., 'Office Chair', 'Sofa', 'Coffee Table')\n"
-            "- brand: The brand name if you can identify it (e.g., 'Herman Miller', 'IKEA', 'West Elm'). "
-            "Use empty string if you cannot identify the brand.\n"
-            "- model_name: The specific model name if you can identify it (e.g., 'Aeron Chair', 'Kallax'). "
-            "Use empty string if you cannot identify the model.\n"
-            "- description: A detailed search-friendly description including color, material, style, "
-            "and distinguishing features. IMPORTANT: Do NOT include brand or model names in the description. "
-            "The description should be generic enough to find similar products from any brand "
-            "(e.g., 'modern black ergonomic mesh office chair with adjustable armrests and lumbar support')\n"
-            "- color: The primary color\n"
-            "- material: The primary material\n"
-            "- style: The design style\n"
-            "- confidence: How confident you are this is furniture (0-1)\n"
-            "- bounding_box: Approximate normalized coordinates (0-1) of the furniture in the image "
-            "(x, y for top-left corner, width and height)\n\n"
-            "Only include actual furniture items. Do not include walls, floors, decorations, or electronics."
+            "You are an expert furniture identifier. Analyze this image and identify ALL furniture items visible.\n\n"
+            "For each piece of furniture, provide:\n\n"
+            "1. **label**: Use SPECIFIC furniture subcategories, not generic ones.\n"
+            "   - Instead of 'Sofa': use 'Sectional Sofa', 'Loveseat', 'Chesterfield Sofa', 'Sleeper Sofa', 'Futon'\n"
+            "   - Instead of 'Chair': use 'Dining Chair', 'Office Chair', 'Accent Chair', 'Rocking Chair', 'Lounge Chair'\n"
+            "   - Instead of 'Table': use 'Coffee Table', 'Dining Table', 'Console Table', 'Side Table', 'End Table'\n\n"
+            "2. **brand**: Identify the brand if possible. Look for design signatures:\n"
+            "   - Herman Miller: distinctive ergonomic mesh designs, Eames shell shapes\n"
+            "   - IKEA: flat-pack construction, minimal Scandinavian design\n"
+            "   - West Elm: mid-century modern lines, warm wood tones\n"
+            "   - Restoration Hardware: oversized proportions, weathered finishes\n"
+            "   - Use empty string if you cannot identify the brand.\n\n"
+            "3. **model_name**: The specific model if identifiable. Use empty string if unknown.\n\n"
+            "4. **description**: Detailed search-friendly description. IMPORTANT: Do NOT include brand or model names.\n"
+            "   Include: silhouette, color, material, upholstery type, leg style, hardware, approximate dimensions.\n"
+            "   Example: 'mid-century modern walnut credenza with sliding doors, tapered legs, and brass hardware'\n\n"
+            "5. **color**: Use specific color names ('navy blue' not 'blue', 'charcoal gray' not 'gray')\n\n"
+            "6. **material**: Use specific materials ('walnut wood' not 'wood', 'top-grain leather' not 'leather', "
+            "'performance velvet' not 'fabric')\n\n"
+            "7. **style**: Choose from: modern, mid-century modern, scandinavian, industrial, farmhouse, "
+            "traditional, transitional, art deco, bohemian, coastal, minimalist, contemporary, rustic, glam\n\n"
+            "8. **estimated_price_range**: Estimated retail price range (e.g., '$500-$800')\n\n"
+            "9. **confidence**: How confident you are (0-1)\n\n"
+            "10. **bounding_box**: Normalized coordinates (0-1) — x, y for top-left corner, width and height\n\n"
+            "Only include actual furniture items. Exclude walls, floors, decorations, plants, and electronics."
         )
 
         image_part = types.Part.from_bytes(
@@ -269,8 +439,9 @@ class VisionService:
             mime_type="image/jpeg",
         )
 
+        model_name = self._get_gemini_model()
         response = client.models.generate_content(
-            model=self.settings.gemini_model,
+            model=model_name,
             contents=[image_part, prompt],
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
@@ -291,15 +462,15 @@ class VisionService:
             h = max(0.0, min(1.0 - y, bbox.get("height", 0.2)))
 
             brand = item.get("brand", "") or None
-            model_name = item.get("model_name", "") or None
+            model_name_val = item.get("model_name", "") or None
             # Build identified_product from brand + model_name
             identified_product = None
-            if brand and model_name:
-                identified_product = f"{brand} {model_name}"
+            if brand and model_name_val:
+                identified_product = f"{brand} {model_name_val}"
             elif brand:
                 identified_product = brand
-            elif model_name:
-                identified_product = model_name
+            elif model_name_val:
+                identified_product = model_name_val
 
             detection = DetectedFurniture(
                 id=str(uuid.uuid4())[:8],
@@ -311,8 +482,9 @@ class VisionService:
                 material=item.get("material"),
                 style=item.get("style"),
                 brand=brand,
-                model_name=model_name,
+                model_name=model_name_val,
                 identified_product=identified_product,
+                estimated_price_range=item.get("estimated_price_range"),
             )
             detections.append(detection)
 

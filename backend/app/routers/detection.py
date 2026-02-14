@@ -1,6 +1,7 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from ..models.detection import DetectionResponse
 from ..services.vision_service import VisionService
+from ..services.image_store import image_store
 
 router = APIRouter(prefix="/api", tags=["detection"])
 
@@ -15,7 +16,8 @@ async def detect_furniture(
     Detect furniture in an uploaded image.
 
     Accepts JPEG, PNG, or WebP images.
-    Returns a list of detected furniture items with bounding boxes.
+    Returns a list of detected furniture items with bounding boxes
+    and a session_id for visual similarity matching.
     """
     # Validate file type
     allowed_types = ["image/jpeg", "image/png", "image/webp"]
@@ -36,7 +38,13 @@ async def detect_furniture(
 
     try:
         detections = await vision_service.detect_furniture(content)
-        return DetectionResponse(success=True, detections=detections)
+
+        # Store image for later visual similarity matching
+        session_id = image_store.store(content)
+        if session_id is None:
+            print("Image store full, visual matching will be unavailable for this request")
+
+        return DetectionResponse(success=True, detections=detections, session_id=session_id)
     except Exception as e:
         return DetectionResponse(
             success=False,

@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     # Gemini API (for furniture detection)
     gemini_api_key: str = ""
     gemini_model: str = "gemini-2.5-flash"
+    gemini_pro_model: str = "gemini-2.5-pro"
+    use_gemini_pro: bool = False
 
     # Serper.dev API (for product matching - fallback)
     serper_api_key: str = ""

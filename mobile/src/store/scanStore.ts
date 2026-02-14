@@ -9,6 +9,7 @@ interface ScanState {
   exactProducts: ProductMatch[];
   similarProducts: ProductMatch[];
   identifiedProduct: string | null;
+  sessionId: string | null;
   isLoading: boolean;
   error: string | null;
 
@@ -21,6 +22,7 @@ interface ScanState {
     similarProducts: ProductMatch[];
     identifiedProduct: string | null;
   }) => void;
+  setSessionId: (sessionId: string | null) => void;
   setIsLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   clearScan: () => void;
@@ -34,6 +36,7 @@ export const useScanStore = create<ScanState>((set) => ({
   exactProducts: [],
   similarProducts: [],
   identifiedProduct: null,
+  sessionId: null,
   isLoading: false,
   error: null,
 
@@ -48,6 +51,7 @@ export const useScanStore = create<ScanState>((set) => ({
       identifiedProduct: result.identifiedProduct,
       productMatches: [...result.exactProducts, ...result.similarProducts],
     }),
+  setSessionId: (sessionId) => set({ sessionId }),
   setIsLoading: (loading) => set({ isLoading: loading }),
   setError: (error) => set({ error }),
   clearScan: () =>
@@ -59,6 +63,7 @@ export const useScanStore = create<ScanState>((set) => ({
       exactProducts: [],
       similarProducts: [],
       identifiedProduct: null,
+      sessionId: null,
       isLoading: false,
       error: null,
     }),

@@ -32,6 +32,44 @@ class ProductService:
 
         self.fallback_retailer = GoogleShoppingRetailer()
 
+    @staticmethod
+    def _build_similar_query(
+        category: str,
+        description: Optional[str] = None,
+        color: Optional[str] = None,
+        material: Optional[str] = None,
+        style: Optional[str] = None,
+    ) -> str:
+        """Build an optimized search query from structured fields."""
+        parts = []
+        if color:
+            parts.append(color)
+        if material:
+            parts.append(material)
+        if style:
+            parts.append(style)
+        parts.append(category)
+        structured_query = " ".join(parts)
+        # Use structured query if we have any structured fields, else fall back to description
+        if len(parts) > 1:
+            return structured_query
+        return description if description else f"{category} furniture"
+
+    @staticmethod
+    def _build_exact_query(
+        brand: Optional[str] = None,
+        model_name: Optional[str] = None,
+        identified_product: Optional[str] = None,
+    ) -> Optional[str]:
+        """Build an exact-match query from brand/model fields."""
+        if brand and model_name:
+            return f"{brand} {model_name}"
+        if identified_product:
+            return identified_product
+        if brand:
+            return brand
+        return None
+
     async def get_matches(
         self, category: str, limit: int = None, description: Optional[str] = None
     ) -> list[ProductMatch]:
@@ -68,6 +106,11 @@ class ProductService:
         limit: int = None,
         description: Optional[str] = None,
         identified_product: Optional[str] = None,
+        color: Optional[str] = None,
+        material: Optional[str] = None,
+        style: Optional[str] = None,
+        brand: Optional[str] = None,
+        model_name: Optional[str] = None,
     ) -> tuple[list[ProductMatch], list[ProductMatch]]:
         """
         Get both exact and similar product matches.
@@ -79,21 +122,21 @@ class ProductService:
         if limit is None:
             limit = self.settings.default_product_limit
 
+        # Build queries from structured fields
+        similar_query = self._build_similar_query(category, description, color, material, style)
+        exact_query = self._build_exact_query(brand, model_name, identified_product)
+
         if self.settings.use_mock_products:
-            similar_query = description if description else f"{category} furniture"
-            if identified_product:
+            if exact_query:
                 return (
-                    self._get_mock_exact(identified_product, limit),
+                    self._get_mock_exact(exact_query, limit),
                     self._get_mock_matches(category, limit, similar_query),
                 )
             return [], self._get_mock_matches(category, limit, similar_query)
 
-        # Build similar search query (without brand/model)
-        similar_query = description if description else f"{category} furniture"
-
-        if identified_product:
+        if exact_query:
             # Run exact and similar searches in parallel
-            exact_task = self._search_exact_all_sources(identified_product, limit)
+            exact_task = self._search_exact_all_sources(exact_query, limit)
             similar_task = self._search_all_sources(similar_query, category, limit)
 
             exact_products, similar_products = await asyncio.gather(

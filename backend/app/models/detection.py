@@ -21,6 +21,7 @@ class DetectedFurniture(BaseModel):
     brand: Optional[str] = Field(None, description="Identified brand name, e.g. 'Herman Miller'")
     model_name: Optional[str] = Field(None, description="Identified model name, e.g. 'Aeron Chair'")
     identified_product: Optional[str] = Field(None, description="Full identified product string, e.g. 'Herman Miller Aeron Chair'")
+    estimated_price_range: Optional[str] = Field(None, description="Estimated price range, e.g. '$500-$800'")
 
 
 class DetectionRequest(BaseModel):
@@ -34,4 +35,5 @@ class DetectionResponse(BaseModel):
     detections: list[DetectedFurniture] = Field(
         default_factory=list, description="List of detected furniture items"
     )
+    session_id: Optional[str] = Field(None, description="Session ID for image-based visual matching")
     error: Optional[str] = Field(None, description="Error message if any")

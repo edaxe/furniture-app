@@ -4,7 +4,7 @@ from .detection import (
     DetectionRequest,
     DetectionResponse,
 )
-from .product import ProductMatch, ProductMatchResponse
+from .product import ProductMatch, ProductMatchRequest, ProductMatchResponse
 
 __all__ = [
     "BoundingBox",
@@ -12,5 +12,6 @@ __all__ = [
     "DetectionRequest",
     "DetectionResponse",
     "ProductMatch",
+    "ProductMatchRequest",
     "ProductMatchResponse",
 ]

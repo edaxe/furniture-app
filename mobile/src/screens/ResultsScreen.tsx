@@ -15,7 +15,7 @@ import ProductMatchModal from '../components/ProductMatchModal';
 import ScanningAnimation from '../components/ScanningAnimation';
 import { ScanStackParamList, DetectedFurniture } from '../navigation/types';
 import { useScanStore } from '../store/scanStore';
-import { detectFurniture, getProductMatches } from '../services/detection';
+import { detectFurniture, getProductMatches, getProductMatchesVisual } from '../services/detection';
 import { colors, typography, fontFamily, shadows, borderRadius, spacing } from '../theme';
 
 type ResultsScreenRouteProp = RouteProp<ScanStackParamList, 'Results'>;
@@ -36,7 +36,9 @@ export default function ResultsScreen() {
     exactProducts,
     similarProducts,
     identifiedProduct,
+    sessionId,
     setProductMatchResult,
+    setSessionId,
     isLoading,
     setIsLoading,
     setError,
@@ -67,8 +69,9 @@ export default function ResultsScreen() {
       setError(null);
 
       try {
-        const results = await detectFurniture(imageUri);
+        const { detections: results, sessionId: sid } = await detectFurniture(imageUri);
         setDetectedFurniture(results);
+        setSessionId(sid);
 
         if (results.length === 0) {
           await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
@@ -99,11 +102,48 @@ export default function ResultsScreen() {
       setLoadingProducts(true);
 
       try {
-        const result = await getProductMatches(
-          furniture.label,
-          furniture.description,
-          furniture.identifiedProduct,
-        );
+        let result;
+        if (sessionId && furniture.boundingBox) {
+          // Use visual similarity matching via POST
+          try {
+            result = await getProductMatchesVisual({
+              sessionId,
+              boundingBox: furniture.boundingBox,
+              category: furniture.label,
+              description: furniture.description,
+              identifiedProduct: furniture.identifiedProduct,
+              color: furniture.color,
+              material: furniture.material,
+              style: furniture.style,
+              brand: furniture.brand,
+              modelName: furniture.modelName,
+            });
+          } catch {
+            // Fall back to text-based GET matching
+            result = await getProductMatches(
+              furniture.label,
+              furniture.description,
+              furniture.identifiedProduct,
+              furniture.color,
+              furniture.material,
+              furniture.style,
+              furniture.brand,
+              furniture.modelName,
+            );
+          }
+        } else {
+          // No session ID available, use text-based GET matching
+          result = await getProductMatches(
+            furniture.label,
+            furniture.description,
+            furniture.identifiedProduct,
+            furniture.color,
+            furniture.material,
+            furniture.style,
+            furniture.brand,
+            furniture.modelName,
+          );
+        }
         setProductMatchResult(result);
       } catch (error) {
         console.error('Failed to get product matches:', error);
@@ -112,7 +152,7 @@ export default function ResultsScreen() {
         setLoadingProducts(false);
       }
     },
-    []
+    [sessionId]
   );
 
   const handleCloseModal = () => {

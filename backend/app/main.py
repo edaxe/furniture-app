@@ -13,6 +13,9 @@ async def lifespan(app: FastAPI):
     print(f"Starting {settings.app_name}...")
     print(f"Debug mode: {settings.debug}")
     print(f"Mock detection: {settings.use_mock_detection}")
+    print(f"Mock products: {settings.use_mock_products}")
+    gemini_model = settings.gemini_pro_model if settings.use_gemini_pro else settings.gemini_model
+    print(f"Gemini model: {gemini_model}")
     yield
     # Shutdown
     print("Shutting down...")
